@@ -10,8 +10,9 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-
+#if SIMPLEMAIN
 int main(void) {
 	puts(""); /* prints  */
 	return EXIT_SUCCESS;
 }
+#endif
