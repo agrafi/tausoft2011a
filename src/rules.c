@@ -36,12 +36,13 @@ passgencontext* preprocess(char* expression, lexicon* lex, unsigned int* passgen
 		{
 			expression[i] = '\0';
 			counter++;
-			retcontext->terms[i].term = expression+i+1;
+			retcontext->terms[counter].term = expression+i+1;
 		}
 	}
 
 	for (t=0; t<retcontext->numOfTerms; t++)
 	{
+		counter = 0;
 		current = retcontext->terms[t].term;
 		while(*current != NULL)
 		{
@@ -346,7 +347,12 @@ char* advanceBlock(passblock* block, lexicon* lex, unsigned long k)
 	char* retpasstemp = NULL;
 	char* partialpass = NULL;
 	retpass = malloc(sizeof(char));
-	if (k == 0) return "$";
+	if (k == 0)
+#ifdef DEBUG
+		return "$";
+#else
+		return "";
+#endif
 	while (k != 0)
 	{
 		k--;
@@ -368,19 +374,30 @@ char* advanceBlock(passblock* block, lexicon* lex, unsigned long k)
 
 char* generatePassword(passgencontext* passgenctx, lexicon* lex, unsigned long k)
 {
-	unsigned int currentBlockIndex = passgenctx->terms[0].numOfBlocks - 1;
+	unsigned int currentTermIndex = 0;
+	unsigned int currentBlockIndex = 0;
 	unsigned int retpasssize, partialsize;
 	char* retpass = NULL;
 	char* retpasstemp = NULL;
 	char* partialpass = NULL;
 	retpass = malloc(sizeof(char));
-	/* TODO: handle '+' terms using mod */
 	k %= passgenctx->numOfPasswords;
+
+	/* Locate relevant term */
+	while (k > passgenctx->terms[currentTermIndex].numOfPasswords)
+	{
+		k -= passgenctx->terms[currentTermIndex].numOfPasswords;
+		currentTermIndex++;
+	}
+	currentBlockIndex = passgenctx->terms[currentTermIndex].numOfBlocks - 1;
+
+	if (k==0) return "Empty Password!";
+
 	while (k != 0)
 	{
 		// k--;
-		partialpass = advanceBlock(passgenctx->terms[0].blocks + currentBlockIndex, lex,
-				k % passgenctx->terms[0].blocks[currentBlockIndex].range);
+		partialpass = advanceBlock(passgenctx->terms[currentTermIndex].blocks + currentBlockIndex, lex,
+				k % passgenctx->terms[currentTermIndex].blocks[currentBlockIndex].range);
 		partialsize = strlen(partialpass);
 		retpasssize = strlen(retpass);
 		retpasstemp = calloc(1, retpasssize + partialsize + 1);
@@ -389,22 +406,26 @@ char* generatePassword(passgencontext* passgenctx, lexicon* lex, unsigned long k
 		strcat(retpasstemp, retpass);
 		free(retpass);
 		retpass = retpasstemp;
-		k = k / passgenctx->terms[0].blocks[currentBlockIndex].range;
+		k = k / passgenctx->terms[currentTermIndex].blocks[currentBlockIndex].range;
 		currentBlockIndex--;
 	}
 	return retpass;
 }
+#define RULE 		"^1^1^1"
+#define CONST_K		121
+
 
 #ifdef RULES_PREPROCESS
 int main(int argc, char** argv) {
-	unsigned long k = 1;//1221-1;//123321 + 3;//10 + 26 + 4 + 28; //pow(52,0) + pow(52,1) + pow(52,2);
+	unsigned long k = CONST_K;//1221-1;//123321 + 3;//10 + 26 + 4 + 28; //pow(52,0) + pow(52,1) + pow(52,2);
 	unsigned int passgensize = 0;
 	char* pass = NULL;
 	lexicon* lex = preprocessLexicon("/home/a/workspace/Project/lexicon.txt");
-	passgencontext* passgenctx = preprocess("#", lex, &passgensize);
-	printf("Number of possible passwords is %lu\n", passgenctx->numOfPasswords);
+	char* rule = calloc(1, strlen(RULE));
+	memcpy(rule, RULE, strlen(RULE) + 1);
+	passgencontext* passgenctx = preprocess(rule, lex, &passgensize);
 	pass = generatePassword(passgenctx, lex, k);
-	printf("%s\n", pass);
+	printf("The %luth password (out of %lu) for %s is %s\n", CONST_K, passgenctx->numOfPasswords, RULE, pass);
 	return 0;
 }
 #endif
