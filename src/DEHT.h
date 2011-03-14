@@ -247,7 +247,7 @@ int validfun(const unsigned char *keyBuf, int keySizeof,
 		unsigned char *validationKeyBuf);
 
 typedef struct element_struct {
-	unsigned long key;
+	unsigned char key[8];
 	DEHT_DISK_PTR dataptr;
 } PAIR;
 

@@ -74,18 +74,20 @@ DEHT *create_empty_DEHT(const char *prefix,/*add .key and .data to open two file
 	}
 
 	//TODO: init inserts helpers
-	d->anLastBlockSize = NULL;
-	d->hashPointersForLastBlockImageInMemory = calloc(d->header.numEntriesInHashTable, sizeof(DEHT_DISK_PTR));
+	d->anLastBlockSize = calloc(d->header.numEntriesInHashTable, sizeof(DEHT_DISK_PTR)); /*Tail offset*/
+	d->hashPointersForLastBlockImageInMemory = calloc(d->header.numEntriesInHashTable, sizeof(DEHT_DISK_PTR)); /*Tail*/
 	d->hashTableOfPointersImageInMemory = calloc(d->header.numEntriesInHashTable, sizeof(DEHT_DISK_PTR));
 
-	if (sizeof(d->header) != fwrite(&(d->header), sizeof(d->header), 1, d->keyFP))
+	int written = 0;
+	if (sizeof(d->header) != (written = fwrite(&(d->header), 1, sizeof(d->header), d->keyFP)))
 	{
+		printf("%d\n", written);
 		perror("Could not write DEHT header");
 		return NULL;
 	}
 
 	if (sizeof(d->hashTableOfPointersImageInMemory) != fwrite(&(d->hashTableOfPointersImageInMemory),
-			sizeof(d->hashTableOfPointersImageInMemory), 1, d->keyFP))
+			1, sizeof(d->hashTableOfPointersImageInMemory), d->keyFP))
 	{
 		perror("Could not write DEHT pointers table");
 		return NULL;
@@ -112,29 +114,77 @@ int add_DEHT ( DEHT *ht, const unsigned char *key, int keyLength,
 {
 	BLOCK_HEADER* bheader = calloc(1, sizeof(BLOCK_HEADER));;
 	PAIR* block = calloc(ht->header.nPairsPerBlock, sizeof(PAIR));
+	DEHT_DISK_PTR lastPtr = fseek(ht->keyFP, 0, SEEK_END);
+	DEHT_DISK_PTR lastDataPtr = 0;
+	PAIR pair;
 
 	int hashIndex = ht->hashFunc(key, keyLength, ht->header.numEntriesInHashTable);
 	if (ht->hashTableOfPointersImageInMemory)
 	{
 		if (ht->hashPointersForLastBlockImageInMemory)
 		{
-			if (ht->hashPointersForLastBlockImageInMemory[hashIndex] == 0)
+			/* if needed, allocate new block */
+			if ((ht->anLastBlockSize[hashIndex] == ht->header.nPairsPerBlock) ||
+					(ht->hashPointersForLastBlockImageInMemory[hashIndex] == 0))
 			{
-				if (sizeof(BLOCK_HEADER) != fwrite(bheader,	sizeof(BLOCK_HEADER), 1, ht->keyFP))
+
+
+				/* update memory pointers */
+				/* first block for entry */
+				if (ht->hashPointersForLastBlockImageInMemory[hashIndex] == 0)
+				{
+					ht->hashTableOfPointersImageInMemory[hashIndex] = lastPtr;
+				}
+				/* allocate new block for existing entry */
+				else if (ht->anLastBlockSize[hashIndex] == ht->header.nPairsPerBlock)
+				{
+					/* go to last block for the desired key */
+					fseek(ht->keyFP, ht->hashPointersForLastBlockImageInMemory[hashIndex], SEEK_SET);
+					bheader->next = lastPtr;
+					if (sizeof(BLOCK_HEADER) != fwrite(bheader,	1, sizeof(BLOCK_HEADER), ht->keyFP))
+					{
+						perror("Could not write DEHT new block header");
+						return NULL;
+					}
+				}
+
+				/* add new block the the end with empty header and fresh blocks */
+				ht->hashPointersForLastBlockImageInMemory[hashIndex] = lastPtr;
+				fseek(ht->keyFP, 0, SEEK_END);
+				bheader->next = 0;
+				if (sizeof(BLOCK_HEADER) != fwrite(bheader,	1, sizeof(BLOCK_HEADER), ht->keyFP))
 				{
 					perror("Could not write DEHT new block header");
 					return NULL;
 				}
-				if (sizeof(block) != fwrite(block, sizeof(block), 1, ht->keyFP))
+				if (sizeof(block) != fwrite(block, 1, sizeof(block), ht->keyFP))
 				{
 					perror("Could not write DEHT new block");
 					return NULL;
 				}
-			}
-			else
-			{
 
+				ht->anLastBlockSize[hashIndex] = 0;
 			}
+
+			/* add new pair */
+			lastDataPtr = fseek(ht->dataFP, 0, SEEK_END);
+			if (dataLength != fwrite(data, 1, dataLength, ht->dataFP))
+			{
+				perror("Could not write DEHT new data");
+				return NULL;
+			}
+
+			lastDataPtr = ht->hashPointersForLastBlockImageInMemory[hashIndex] + sizeof(PAIR)*ht->anLastBlockSize[hashIndex];
+			pair.dataptr = lastDataPtr;
+			memset(&pair.key, 0, sizeof(pair.key)); /* zero */
+			memcpy(&pair.key, key, MIN(keyLength, sizeof(pair.key)));
+			fseek(ht->dataFP, 0, lastDataPtr);
+			if (sizeof(pair) != fwrite(data, 1, dataLength, ht->dataFP))
+			{
+				perror("Could not write DEHT new data");
+				return NULL;
+			}
+			ht->anLastBlockSize[hashIndex]++;
 		}
 	}
 	return DEHT_STATUS_SUCCESS;
