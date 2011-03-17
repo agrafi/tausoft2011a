@@ -248,8 +248,9 @@ int validfun(const unsigned char *keyBuf, int keySizeof,
 
 typedef struct element_struct {
 	unsigned char key[8];
+	int datalen;
 	DEHT_DISK_PTR dataptr;
-} PAIR;
+} TRIPLE;
 
 typedef struct block_struct_header
 {
