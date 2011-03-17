@@ -22,6 +22,7 @@
 /* int nTableSize, i.e. Output is 0 to (nTableSize-1) to fit table of pointers*/
 int hashfun(const unsigned char *keyBuf, int keySizeof, int nTableSize)
 {
+	return 0x3232;
 	char* outbuf = calloc(1, MD5_OUTPUT_LENGTH_IN_BYTES);
 	int retVal = 0;
 	MD5BasicHash(keyBuf, keySizeof, outbuf);
@@ -86,12 +87,15 @@ DEHT *create_empty_DEHT(const char *prefix,/*add .key and .data to open two file
 		return NULL;
 	}
 
-	if (sizeof(d->hashTableOfPointersImageInMemory) != fwrite(&(d->hashTableOfPointersImageInMemory),
-			1, sizeof(d->hashTableOfPointersImageInMemory), d->keyFP))
+	if (d->header.numEntriesInHashTable != fwrite(d->hashTableOfPointersImageInMemory,
+			sizeof(DEHT_DISK_PTR), d->header.numEntriesInHashTable, d->keyFP))
 	{
 		perror("Could not write DEHT pointers table");
 		return NULL;
 	}
+#ifdef DEBUG
+	fflush(d->keyFP);
+#endif
 	return d;
 }
 
@@ -113,10 +117,18 @@ int add_DEHT ( DEHT *ht, const unsigned char *key, int keyLength,
 				 const unsigned char *data, int dataLength)
 {
 	BLOCK_HEADER* bheader = calloc(1, sizeof(BLOCK_HEADER));;
-	PAIR* block = calloc(ht->header.nPairsPerBlock, sizeof(PAIR));
-	DEHT_DISK_PTR lastPtr = fseek(ht->keyFP, 0, SEEK_END);
+	TRIPLE* block = calloc(ht->header.nPairsPerBlock, sizeof(TRIPLE));
+	DEHT_DISK_PTR lastPtr = 0;
 	DEHT_DISK_PTR lastDataPtr = 0;
-	PAIR pair;
+	TRIPLE triple;
+
+	if (0 != fseek(ht->keyFP, 0, SEEK_END))
+	{
+		free(block);
+		perror("Could not seek to keyFP EOF");
+		return DEHT_STATUS_FAIL;
+	}
+	lastPtr = ftell(ht->keyFP);
 
 	int hashIndex = ht->hashFunc(key, keyLength, ht->header.numEntriesInHashTable);
 	if (ht->hashTableOfPointersImageInMemory)
@@ -150,42 +162,81 @@ int add_DEHT ( DEHT *ht, const unsigned char *key, int keyLength,
 
 				/* add new block the the end with empty header and fresh blocks */
 				ht->hashPointersForLastBlockImageInMemory[hashIndex] = lastPtr;
-				fseek(ht->keyFP, 0, SEEK_END);
+				fseek(ht->keyFP, lastPtr, SEEK_SET);
 				bheader->next = 0;
 				if (sizeof(BLOCK_HEADER) != fwrite(bheader,	1, sizeof(BLOCK_HEADER), ht->keyFP))
 				{
 					perror("Could not write DEHT new block header");
 					return NULL;
 				}
-				if (sizeof(block) != fwrite(block, 1, sizeof(block), ht->keyFP))
+#ifdef DEBUG
+	fflush(ht->keyFP);
+#endif
+				if (ht->header.nPairsPerBlock != fwrite(block, sizeof(TRIPLE), ht->header.nPairsPerBlock, ht->keyFP))
 				{
 					perror("Could not write DEHT new block");
 					return NULL;
 				}
-
+#ifdef DEBUG
+	fflush(ht->keyFP);
+#endif
 				ht->anLastBlockSize[hashIndex] = 0;
 			}
 
-			/* add new pair */
-			lastDataPtr = fseek(ht->dataFP, 0, SEEK_END);
+			/* add new triple */
+			fseek(ht->dataFP, 0, SEEK_END);
+			lastDataPtr = ftell(ht->dataFP);
+			/* write new data */
 			if (dataLength != fwrite(data, 1, dataLength, ht->dataFP))
 			{
 				perror("Could not write DEHT new data");
 				return NULL;
 			}
-
-			lastDataPtr = ht->hashPointersForLastBlockImageInMemory[hashIndex] + sizeof(PAIR)*ht->anLastBlockSize[hashIndex];
-			pair.dataptr = lastDataPtr;
-			memset(&pair.key, 0, sizeof(pair.key)); /* zero */
-			memcpy(&pair.key, key, MIN(keyLength, sizeof(pair.key)));
-			fseek(ht->dataFP, 0, lastDataPtr);
-			if (sizeof(pair) != fwrite(data, 1, dataLength, ht->dataFP))
+#ifdef DEBUG
+	fflush(ht->dataFP);
+#endif
+			lastPtr = ht->hashPointersForLastBlockImageInMemory[hashIndex] + sizeof(BLOCK_HEADER) + sizeof(TRIPLE)*ht->anLastBlockSize[hashIndex];
+			triple.dataptr = lastDataPtr;
+			triple.datalen = dataLength;
+			memset(&triple.key, 0, sizeof(triple.key)); /* zero */
+			memcpy(&triple.key, key, MIN(keyLength, sizeof(triple.key)));
+			fseek(ht->keyFP, lastPtr, SEEK_SET);
+			/* write new key */
+			if (sizeof(triple) != fwrite(&triple, 1, sizeof(triple), ht->keyFP))
 			{
-				perror("Could not write DEHT new data");
+				perror("Could not write DEHT new key");
 				return NULL;
 			}
+#ifdef DEBUG
+	fflush(ht->keyFP);
+#endif
 			ht->anLastBlockSize[hashIndex]++;
 		}
 	}
+	return DEHT_STATUS_SUCCESS;
+}
+
+/************************************************************************************/
+/* Function write_DEHT_pointers_table writes pointer of tables RAM to Disk & release*/
+/* Input: DEHT to act on.                                                           */
+/* Output:                                                                          */
+/* If not RAM pointer is NULL, return DEHT_STATUS_NOT_NEEDED                        */
+/* if fail return DEHT_STATUS_FAIL, if success return DEHT_STATUS_SUCCESS           */
+/* Note: do not forget to use "free" and put NULL.                                  */
+/************************************************************************************/
+int write_DEHT_pointers_table(DEHT *ht)
+{
+	if (!ht->hashTableOfPointersImageInMemory)
+		return DEHT_STATUS_NOT_NEEDED;
+
+	fseek(ht->keyFP, sizeof(ht->header), SEEK_SET);
+
+	if (ht->header.numEntriesInHashTable != fwrite(ht->hashTableOfPointersImageInMemory,
+			sizeof(DEHT_DISK_PTR), ht->header.numEntriesInHashTable, ht->keyFP))
+	{
+		perror("Could not write DEHT pointers table");
+		return DEHT_STATUS_FAIL;
+	}
+
 	return DEHT_STATUS_SUCCESS;
 }
