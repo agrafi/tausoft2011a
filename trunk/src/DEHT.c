@@ -238,6 +238,8 @@ int write_DEHT_pointers_table(DEHT *ht)
 		return DEHT_STATUS_FAIL;
 	}
 	fflush(ht->keyFP);
+	free(ht->hashTableOfPointersImageInMemory);
+	ht->hashTableOfPointersImageInMemory = NULL;
 	return DEHT_STATUS_SUCCESS;
 }
 
@@ -305,9 +307,7 @@ int mult_query_DEHT ( DEHT *ht, const unsigned char *key, int keyLength,
 
 	while (!quit)
 	{
-		int readbytes = fread(bheader, 1, sizeof(bheader), ht->keyFP);
-		long test = ftell(ht->keyFP);
-		if (sizeof(bheader) != readbytes)
+		if (sizeof(bheader) != fread(bheader, 1, sizeof(bheader), ht->keyFP))
 		{
 			perror("Could not read DEHT block header");
 			return 0;
@@ -364,4 +364,169 @@ int mult_query_DEHT ( DEHT *ht, const unsigned char *key, int keyLength,
 		}
 	}
 	return numOfMatches;
+}
+
+/************************************************************************************/
+/* Function lock_DEHT_files closes the DEHT files and release memory.               */
+/* Input: DEHT to act on. No Output (never fail).                                   */
+/* Notes:                                                                           */
+/* calls write_DEHT_hash_table if necessary, call "free" when possible.             */
+/* use "fclose" command. do not free "FILE *"                                       */
+/************************************************************************************/
+void lock_DEHT_files(DEHT *ht)
+{
+	write_DEHT_pointers_table(ht);
+	if (ht->hashPointersForLastBlockImageInMemory)
+	{
+		free(ht->hashPointersForLastBlockImageInMemory);
+		ht->hashPointersForLastBlockImageInMemory = NULL;
+	}
+
+	if (ht->anLastBlockSize)
+	{
+		free(ht->anLastBlockSize);
+		ht->anLastBlockSize = NULL;
+	}
+	fclose(ht->keyFP);
+	fclose(ht->dataFP);
+}
+
+/********************************************************************************/
+/* Function load_DEHT_from_files importes files created by previously used DEHT */
+/* Inputs: file names on disk (as prefix).                                      */
+/* Output: an allocated DEHT struct pointer.                                    */
+/* Notes:                                                                       */
+/* It open files (RW permissions) and create appropriate data-strucre on memory */
+/* hashTableOfPointersImageInMemory, hashPointersForLastBlockImageInMemory:=NULL*/
+/* Returns NULL if fail (e.g. files are not exist) with message to stderr       */
+/********************************************************************************/
+DEHT *load_DEHT_from_files(const char *prefix,
+						   hashKeyIntoTableFunctionPtr hashfun, hashKeyforEfficientComparisonFunctionPtr validfun)
+{
+	DEHT* d = calloc(1, sizeof(DEHT));
+	sprintf(d->sKeyFileName, "%s.key", prefix);
+	sprintf(d->sDataFileName, "%s.data", prefix);
+	d->hashFunc = hashfun;
+	d->comparisonHashFunc = validfun;
+
+	if ((d->dataFP = fopen(d->sDataFileName, "r+b")) == NULL)
+	{
+		perror("Could not open DEHT data file");
+		return NULL;
+	}
+	if ((d->keyFP = fopen(d->sKeyFileName, "r+b")) == NULL)
+	{
+		perror("Could not open DEHT key file");
+		return NULL;
+	}
+
+	fseek(d->keyFP, 0, SEEK_SET);
+	/* read header */
+	int readb = fread(&(d->header), 1,sizeof(d->header), d->keyFP);
+	if (sizeof(d->header) != readb)
+	{
+		perror("Could not read DEHT header");
+		return 0;
+	}
+
+	read_DEHT_pointers_table(d);
+	calc_DEHT_last_block_per_bucket(d);
+
+	return d;
+
+}
+/************************************************************************************/
+/* Function read_DEHT_pointers_table loads pointer of tables from disk into RAM     */
+/* It will be used for effciency, e.g. when many queries expected soon              */
+/* Input: DEHT to act on. (will change member hashTableOfPointersImageInMemory).    */
+/* Output:                                                                          */
+/* If it is already cached, do nothing and return DEHT_STATUS_NOT_NEEDED.           */
+/* If fail, return DEHT_STATUS_FAIL, if success return DEHT_STATUS_NOT_SUCCESS      */
+/************************************************************************************/
+int read_DEHT_pointers_table(DEHT *ht)
+{
+	if (ht->hashTableOfPointersImageInMemory)
+		return DEHT_STATUS_NOT_NEEDED;
+
+	ht->hashTableOfPointersImageInMemory = calloc(ht->header.numEntriesInHashTable, sizeof(DEHT_DISK_PTR));
+	fseek(ht->keyFP, sizeof(ht->header), SEEK_SET);
+	/* read table of pointers */
+	if (ht->header.numEntriesInHashTable != fread(ht->hashTableOfPointersImageInMemory,
+			sizeof(DEHT_DISK_PTR), ht->header.numEntriesInHashTable, ht->keyFP))
+	{
+		perror("Could not read DEHT table of pointers");
+		return DEHT_STATUS_FAIL;
+	}
+
+	return calc_DEHT_last_block_per_bucket(ht);
+}
+
+/************************************************************************************/
+/* Function calc_DEHT_last_block_per_bucket calculate all rear pointers on key file */
+/*   to enable insertion with a single seek. Will be called by user when many insert*/
+/*   calls are expected. Note that these has no parallel on disk thus no "write"    */
+/* Input: DEHT to act on (modify hashPointersForLastBlockImageInMemory)             */
+/* Output:                                                                          */
+/* If it is already exist, do nothing and return DEHT_STATUS_NOT_NEEDED.            */
+/* If fail, return DEHT_STATUS_FAIL, if success return DEHT_STATUS_NOT_SUCCESS      */
+/************************************************************************************/
+int calc_DEHT_last_block_per_bucket(DEHT *ht)
+{
+	int i = 0, counter = 0;
+	BLOCK_HEADER* bheader = calloc(1, sizeof(BLOCK_HEADER));;
+	TRIPLE* block = calloc(ht->header.nPairsPerBlock, sizeof(TRIPLE));
+	if (ht->hashPointersForLastBlockImageInMemory)
+	{
+		free(bheader);
+		free(block);
+		return DEHT_STATUS_NOT_NEEDED;
+	}
+
+	ht->anLastBlockSize = calloc(ht->header.numEntriesInHashTable, sizeof(DEHT_DISK_PTR)); /*Tail offset*/
+	ht->hashPointersForLastBlockImageInMemory = calloc(ht->header.numEntriesInHashTable, sizeof(DEHT_DISK_PTR)); /*Tail*/
+
+	for (i = 0; i < ht->header.numEntriesInHashTable; i++)
+	{
+		if (ht->hashTableOfPointersImageInMemory[i] != 0)
+		{
+			/* find last block */
+			ht->hashPointersForLastBlockImageInMemory[i] = ht->hashTableOfPointersImageInMemory[i];
+			fseek(ht->keyFP, ht->hashTableOfPointersImageInMemory[i], SEEK_SET);
+			while (1)
+			{
+				if (sizeof(bheader) != fread(bheader, 1, sizeof(bheader), ht->keyFP))
+				{
+					perror("Could not read DEHT block header");
+					free(bheader);
+					free(block);
+					return DEHT_STATUS_FAIL;
+				}
+				if (bheader->next == 0)
+					break;
+				ht->hashPointersForLastBlockImageInMemory[i] = bheader->next;
+			}
+
+			/* enumerate triplets on last block */
+			fseek(ht->keyFP, ht->hashPointersForLastBlockImageInMemory[i], SEEK_SET);
+			/* read whole block */
+			if (ht->header.nPairsPerBlock == fread(block, ht->header.nPairsPerBlock, sizeof(TRIPLE), ht->keyFP))
+			{
+				perror("Could not read DEHT whole block");
+				free(bheader);
+				free(block);
+				return DEHT_STATUS_FAIL;
+			}
+
+			/* iterate over block triplets */
+			counter = 0;
+			while (counter < ht->header.nPairsPerBlock)
+			{
+				if (block[counter].datalen == 0)
+					break;
+				counter++;
+			}
+			ht->anLastBlockSize[i] = counter;
+		}
+	}
+	return DEHT_STATUS_SUCCESS;
 }
