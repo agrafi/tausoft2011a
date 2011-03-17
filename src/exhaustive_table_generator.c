@@ -29,7 +29,6 @@ int main(void)
 		keylen = hexa2binary("dd5fef9c1c1da1394d6d34b248c51be2ad740840", keybuf, 20);
 		add_DEHT(deht, keybuf, keylen, databuf, datalen);
 	}
-	write_DEHT_pointers_table(deht);
 	datalen = hexa2binary("123456", databuf, 30);
 	keylen = hexa2binary("7c4a8d09ca3762af61e59520943dc26494f8941b", keybuf, 20);
 	memset(databuf, 0, 30);
@@ -37,6 +36,17 @@ int main(void)
 	memset(keybuf, 0 , 20);
 	binary2hexa(databuf, len, keybuf, 20);
 	printf("data is %s\n", keybuf);
+	lock_DEHT_files(deht);
+
+	deht = load_DEHT_from_files("deht", hashfun, validfun);
+	datalen = hexa2binary("123456", databuf, 30);
+	keylen = hexa2binary("7c4a8d09ca3762af61e59520943dc26494f8941b", keybuf, 20);
+	memset(databuf, 0, 30);
+	len = query_DEHT(deht, keybuf, 20, databuf, 30);
+	memset(keybuf, 0 , 20);
+	binary2hexa(databuf, len, keybuf, 20);
+	printf("data is %s\n", keybuf);
+
 	return EXIT_SUCCESS;
 }
 #endif
