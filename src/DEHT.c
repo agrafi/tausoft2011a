@@ -22,7 +22,6 @@
 /* int nTableSize, i.e. Output is 0 to (nTableSize-1) to fit table of pointers*/
 int hashfun(const unsigned char *keyBuf, int keySizeof, int nTableSize)
 {
-	return 0x3232;
 	char* outbuf = calloc(1, MD5_OUTPUT_LENGTH_IN_BYTES);
 	int retVal = 0;
 	MD5BasicHash(keyBuf, keySizeof, outbuf);
@@ -46,7 +45,8 @@ int hashfun(const unsigned char *keyBuf, int keySizeof, int nTableSize)
 int validfun(const unsigned char *keyBuf, int keySizeof,
 		unsigned char *validationKeyBuf)
 {
-	return 0;
+	return (memcmp(keyBuf, validationKeyBuf, MIN(keySizeof, 8)) == 0);
+
 }
 
 DEHT *create_empty_DEHT(const char *prefix,/*add .key and .data to open two files return NULL if fail creation*/
@@ -63,12 +63,12 @@ DEHT *create_empty_DEHT(const char *prefix,/*add .key and .data to open two file
 	d->header.nPairsPerBlock = nPairsPerBlock;
 	d->header.numEntriesInHashTable = numEntriesInHashTable;
 	d->header.nBytesPerValidationKey = nBytesPerKey;
-	if ((d->dataFP = fopen(d->sDataFileName, "wb")) == NULL)
+	if ((d->dataFP = fopen(d->sDataFileName, "w+b")) == NULL)
 	{
 		perror("Could not open DEHT data file");
 		return NULL;
 	}
-	if ((d->keyFP = fopen(d->sKeyFileName, "wb")) == NULL)
+	if ((d->keyFP = fopen(d->sKeyFileName, "w+b")) == NULL)
 	{
 		perror("Could not open DEHT key file");
 		return NULL;
@@ -237,6 +237,131 @@ int write_DEHT_pointers_table(DEHT *ht)
 		perror("Could not write DEHT pointers table");
 		return DEHT_STATUS_FAIL;
 	}
-
+	fflush(ht->keyFP);
 	return DEHT_STATUS_SUCCESS;
+}
+
+/********************************************************************************/
+/* Function query_DEHT query a key.                                             */
+/* Inputs: DEHT to query in, key input and data output buffer.                  */
+/* Output:                                                                      */
+/* If successfully insert returns number of bytes fullfiled in data buffer      */
+/* If not found returns DEHT_STATUS_NOT_NEEDED                                  */
+/* If fail returns DEHT_STATUS_FAIL                                             */
+/* Notes:                                                                       */
+/* If hashTableOfPointersImageInMemory!=NULL use it to save single seek.        */
+/* Else access using table of pointers on disk.                                 */
+/* "ht" argument is non const as fseek is non const too (will change "keyFP")   */
+/********************************************************************************/
+int query_DEHT ( DEHT *ht, const unsigned char *key, int keyLength,
+				 unsigned char *data, int dataMaxAllowedLength)
+{
+	int retVal = 0;
+	unsigned char** dataPointer = calloc(2,sizeof(char*));
+	if (mult_query_DEHT (ht, key, keyLength, data, dataMaxAllowedLength, dataPointer,2) == 0)
+	{
+		free (dataPointer);
+		return DEHT_STATUS_NOT_NEEDED;
+	}
+	retVal = dataPointer[1] - dataPointer[0];
+	free(dataPointer);
+	return retVal;
+}
+
+/********************************************************************************/
+/* Function mult_query_DEHT query a key and return all possible matches.        */
+/* Inputs: DEHT to query in, key input, data output buffer ans its size, 		*/
+/*         array of pointers to output buffer and its size.						*/
+/* Output:                                                                      */
+/* If successfully query returns number of matches found 	 			        */
+/* If fail returns DEHT_STATUS_FAIL                                             */
+/* Notes:                                                                       */
+/* If hashTableOfPointersImageInMemory!=NULL use it to save single seek.        */
+/* Else access using table of pointers on disk.                                 */
+/* "ht" argument is non const as fseek is non const too (will change "keyFP")   */
+/********************************************************************************/
+int mult_query_DEHT ( DEHT *ht, const unsigned char *key, int keyLength,
+				 unsigned char *data, int dataMaxAllowedLength,
+				 unsigned char **dataPointer, int dataPointerLength)
+{
+	int hashIndex = ht->hashFunc(key, keyLength, ht->header.numEntriesInHashTable);
+	BLOCK_HEADER* bheader = (BLOCK_HEADER*)calloc(1, sizeof(BLOCK_HEADER));;
+	TRIPLE* block = (TRIPLE*)calloc(ht->header.nPairsPerBlock, sizeof(TRIPLE));
+	char quit = 0;
+	int counter = 0;
+	int numOfMatches = 0;
+	unsigned char* lastDataPtr = data;
+	dataPointerLength--;
+
+	if (ht == NULL)
+		return DEHT_STATUS_FAIL;
+
+	if (ht->hashTableOfPointersImageInMemory[hashIndex] == 0)
+	{
+		return 0;
+	}
+
+	fseek(ht->keyFP, ht->hashTableOfPointersImageInMemory[hashIndex], SEEK_SET);
+
+	while (!quit)
+	{
+		int readbytes = fread(bheader, 1, sizeof(bheader), ht->keyFP);
+		long test = ftell(ht->keyFP);
+		if (sizeof(bheader) != readbytes)
+		{
+			perror("Could not read DEHT block header");
+			return 0;
+		}
+
+		/* read whole block */
+		if (ht->header.nPairsPerBlock == fread(block, ht->header.nPairsPerBlock, sizeof(TRIPLE), ht->keyFP))
+		{
+			perror("Could not read DEHT whole block");
+			return 0;
+		}
+
+		/* iterate over block triplets */
+		while (counter < ht->header.nPairsPerBlock)
+		{
+			if (block[counter].datalen == 0)
+			{
+				quit = 1;
+				break;
+			}
+			if (ht->comparisonHashFunc(key, keyLength, block[counter].key))
+			{
+				/* valid match found, copy to output buffer */
+				fseek(ht->dataFP, block[counter].dataptr, SEEK_SET);
+				/* read data */
+				if (lastDataPtr - data + block[counter].datalen > dataMaxAllowedLength)
+				{
+					quit = 1;
+					break;
+				}
+				dataPointer[numOfMatches] = lastDataPtr;
+				if (block[counter].datalen == fread(dataPointer[numOfMatches], block[counter].datalen, 1, ht->dataFP))
+				{
+					perror("Could not read DEHT data");
+					return 0;
+				}
+				numOfMatches++;
+				lastDataPtr += block[counter].datalen;
+				dataPointer[numOfMatches] = lastDataPtr;
+				if (numOfMatches == dataPointerLength)
+				{
+					quit = 1;
+					break;
+				}
+			}
+			/* advance to next block */
+			counter++;
+			if (counter == ht->header.nPairsPerBlock)
+			{
+				fseek(ht->keyFP, bheader->next, SEEK_SET);
+				counter = 0;
+				break;
+			}
+		}
+	}
+	return numOfMatches;
 }

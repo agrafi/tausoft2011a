@@ -72,10 +72,10 @@ int hexa2binary(const char *strIn, unsigned char *outBuf, int outMaxLen){
         int i;
         unsigned char *c = (unsigned char *)strIn;
         unsigned char *o = outBuf;
-        for (i = 0; i < outMaxLen; i++) {
+        for (i = 0; i < outMaxLen && c[2*i]; i++) {
                 o[i] = (hex_to_nibble(c[2*i]) << 4) + hex_to_nibble(c[2*i+1]);
         }
-        return 1;
+        return i;
 }
 
 const unsigned char nibble_to_hex[] = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'};
@@ -91,5 +91,5 @@ int binary2hexa(const unsigned char *bufIn, int lengthIn, char *outStr, int outM
                 *(o + 2*i + 1) = nibble_to_hex[c[i] % 0x10];
         }
         o[2*i] = '\0';
-        return 1;
+        return 2*lengthIn;
 }
