@@ -128,7 +128,7 @@ int add_DEHT ( DEHT *ht, const unsigned char *key, int keyLength,
 				 const unsigned char *data, int dataLength)
 {
 	BLOCK_HEADER bheader;
-	TRIPLE block;
+	TRIPLE block[ht->header.nPairsPerBlock];
 	DEHT_DISK_PTR lastPtr = 0;
 	DEHT_DISK_PTR lastDataPtr = 0;
 	TRIPLE triple;
@@ -358,7 +358,7 @@ int mult_query_DEHT ( DEHT *ht, const unsigned char *key, int keyLength,
 					break;
 				}
 				dataPointer[numOfMatches] = lastDataPtr;
-				if (block[counter].datalen == fread(dataPointer[numOfMatches], block[counter].datalen, 1, ht->dataFP))
+				if (block[counter].datalen != fread(dataPointer[numOfMatches], 1, block[counter].datalen, ht->dataFP))
 				{
 					perror("Could not read DEHT data");
 					return 0;
@@ -496,6 +496,10 @@ int calc_DEHT_last_block_per_bucket(DEHT *ht)
 	int i = 0, counter = 0;
 	BLOCK_HEADER bheader;
 	TRIPLE block[ht->header.nPairsPerBlock];
+
+	memset(&bheader, 0, sizeof(bheader));
+	memset(&block, 0, sizeof(block));
+
 	if (ht->hashPointersForLastBlockImageInMemory)
 	{
 		return DEHT_STATUS_NOT_NEEDED;
