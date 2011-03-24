@@ -47,6 +47,7 @@ int main(void)
 	binary2hexa(databuf, len, keybuf, 20);
 	printf("data is %s\n", keybuf);
 
+
 	return EXIT_SUCCESS;
 }
 #endif
