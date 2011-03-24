@@ -26,6 +26,7 @@ int hashfun(const unsigned char *keyBuf, int keySizeof, int nTableSize)
 	int retVal = 0;
 	MD5BasicHash(keyBuf, keySizeof, outbuf);
 	retVal = (*(int*)(outbuf)) & (nTableSize-1);
+	free(outbuf);
 	return retVal;
 }
 
@@ -66,11 +67,13 @@ DEHT *create_empty_DEHT(const char *prefix,/*add .key and .data to open two file
 	if ((d->dataFP = fopen(d->sDataFileName, "w+b")) == NULL)
 	{
 		perror("Could not open DEHT data file");
+		free(d);
 		return NULL;
 	}
 	if ((d->keyFP = fopen(d->sKeyFileName, "w+b")) == NULL)
 	{
 		perror("Could not open DEHT key file");
+		free(d);
 		return NULL;
 	}
 
@@ -84,6 +87,10 @@ DEHT *create_empty_DEHT(const char *prefix,/*add .key and .data to open two file
 	{
 		printf("%d\n", written);
 		perror("Could not write DEHT header");
+		free(d->anLastBlockSize);
+		free(d->hashPointersForLastBlockImageInMemory);
+		free(d->hashTableOfPointersImageInMemory);
+		free(d);
 		return NULL;
 	}
 
@@ -91,6 +98,10 @@ DEHT *create_empty_DEHT(const char *prefix,/*add .key and .data to open two file
 			sizeof(DEHT_DISK_PTR), d->header.numEntriesInHashTable, d->keyFP))
 	{
 		perror("Could not write DEHT pointers table");
+		free(d->anLastBlockSize);
+		free(d->hashPointersForLastBlockImageInMemory);
+		free(d->hashTableOfPointersImageInMemory);
+		free(d);
 		return NULL;
 	}
 #ifdef DEBUG
@@ -116,15 +127,16 @@ DEHT *create_empty_DEHT(const char *prefix,/*add .key and .data to open two file
 int add_DEHT ( DEHT *ht, const unsigned char *key, int keyLength,
 				 const unsigned char *data, int dataLength)
 {
-	BLOCK_HEADER* bheader = calloc(1, sizeof(BLOCK_HEADER));;
-	TRIPLE* block = calloc(ht->header.nPairsPerBlock, sizeof(TRIPLE));
+	BLOCK_HEADER bheader;
+	TRIPLE block;
 	DEHT_DISK_PTR lastPtr = 0;
 	DEHT_DISK_PTR lastDataPtr = 0;
 	TRIPLE triple;
+	memset(&bheader, 0, sizeof(bheader));
+	memset(&block, 0, sizeof(block));
 
 	if (0 != fseek(ht->keyFP, 0, SEEK_END))
 	{
-		free(block);
 		perror("Could not seek to keyFP EOF");
 		return DEHT_STATUS_FAIL;
 	}
@@ -140,7 +152,6 @@ int add_DEHT ( DEHT *ht, const unsigned char *key, int keyLength,
 					(ht->hashPointersForLastBlockImageInMemory[hashIndex] == 0))
 			{
 
-
 				/* update memory pointers */
 				/* first block for entry */
 				if (ht->hashPointersForLastBlockImageInMemory[hashIndex] == 0)
@@ -152,8 +163,8 @@ int add_DEHT ( DEHT *ht, const unsigned char *key, int keyLength,
 				{
 					/* go to last block for the desired key */
 					fseek(ht->keyFP, ht->hashPointersForLastBlockImageInMemory[hashIndex], SEEK_SET);
-					bheader->next = lastPtr;
-					if (sizeof(BLOCK_HEADER) != fwrite(bheader,	1, sizeof(BLOCK_HEADER), ht->keyFP))
+					bheader.next = lastPtr;
+					if (sizeof(BLOCK_HEADER) != fwrite(&bheader, 1, sizeof(BLOCK_HEADER), ht->keyFP))
 					{
 						perror("Could not write DEHT new block header");
 						return NULL;
@@ -163,8 +174,8 @@ int add_DEHT ( DEHT *ht, const unsigned char *key, int keyLength,
 				/* add new block the the end with empty header and fresh blocks */
 				ht->hashPointersForLastBlockImageInMemory[hashIndex] = lastPtr;
 				fseek(ht->keyFP, lastPtr, SEEK_SET);
-				bheader->next = 0;
-				if (sizeof(BLOCK_HEADER) != fwrite(bheader,	1, sizeof(BLOCK_HEADER), ht->keyFP))
+				bheader.next = 0;
+				if (sizeof(BLOCK_HEADER) != fwrite(&bheader, 1, sizeof(BLOCK_HEADER), ht->keyFP))
 				{
 					perror("Could not write DEHT new block header");
 					return NULL;
@@ -172,7 +183,7 @@ int add_DEHT ( DEHT *ht, const unsigned char *key, int keyLength,
 #ifdef DEBUG
 	fflush(ht->keyFP);
 #endif
-				if (ht->header.nPairsPerBlock != fwrite(block, sizeof(TRIPLE), ht->header.nPairsPerBlock, ht->keyFP))
+				if (ht->header.nPairsPerBlock != fwrite(&block, sizeof(TRIPLE), ht->header.nPairsPerBlock, ht->keyFP))
 				{
 					perror("Could not write DEHT new block");
 					return NULL;
@@ -287,16 +298,24 @@ int mult_query_DEHT ( DEHT *ht, const unsigned char *key, int keyLength,
 				 unsigned char **dataPointer, int dataPointerLength)
 {
 	int hashIndex = ht->hashFunc(key, keyLength, ht->header.numEntriesInHashTable);
-	BLOCK_HEADER* bheader = (BLOCK_HEADER*)calloc(1, sizeof(BLOCK_HEADER));;
-	TRIPLE* block = (TRIPLE*)calloc(ht->header.nPairsPerBlock, sizeof(TRIPLE));
+	BLOCK_HEADER bheader;
+	TRIPLE block[ht->header.nPairsPerBlock];
 	char quit = 0;
 	int counter = 0;
 	int numOfMatches = 0;
 	unsigned char* lastDataPtr = data;
 	dataPointerLength--;
 
+	memset(&bheader, 0, sizeof(bheader));
+	memset(&block, 0, sizeof(block));
+
 	if (ht == NULL)
 		return DEHT_STATUS_FAIL;
+
+	if (dataPointer != NULL)
+	{
+		memset(dataPointer, 0, dataPointerLength * sizeof(unsigned char *));
+	}
 
 	if (ht->hashTableOfPointersImageInMemory[hashIndex] == 0)
 	{
@@ -307,14 +326,14 @@ int mult_query_DEHT ( DEHT *ht, const unsigned char *key, int keyLength,
 
 	while (!quit)
 	{
-		if (sizeof(bheader) != fread(bheader, 1, sizeof(bheader), ht->keyFP))
+		if (sizeof(bheader) != fread(&bheader, 1, sizeof(bheader), ht->keyFP))
 		{
 			perror("Could not read DEHT block header");
 			return 0;
 		}
 
 		/* read whole block */
-		if (ht->header.nPairsPerBlock == fread(block, ht->header.nPairsPerBlock, sizeof(TRIPLE), ht->keyFP))
+		if (ht->header.nPairsPerBlock == fread(&block, ht->header.nPairsPerBlock, sizeof(TRIPLE), ht->keyFP))
 		{
 			perror("Could not read DEHT whole block");
 			return 0;
@@ -357,7 +376,7 @@ int mult_query_DEHT ( DEHT *ht, const unsigned char *key, int keyLength,
 			counter++;
 			if (counter == ht->header.nPairsPerBlock)
 			{
-				fseek(ht->keyFP, bheader->next, SEEK_SET);
+				fseek(ht->keyFP, bheader.next, SEEK_SET);
 				counter = 0;
 				break;
 			}
@@ -389,6 +408,7 @@ void lock_DEHT_files(DEHT *ht)
 	}
 	fclose(ht->keyFP);
 	fclose(ht->dataFP);
+	free(ht);
 }
 
 /********************************************************************************/
@@ -455,6 +475,7 @@ int read_DEHT_pointers_table(DEHT *ht)
 			sizeof(DEHT_DISK_PTR), ht->header.numEntriesInHashTable, ht->keyFP))
 	{
 		perror("Could not read DEHT table of pointers");
+		free(ht->hashTableOfPointersImageInMemory);
 		return DEHT_STATUS_FAIL;
 	}
 
@@ -473,12 +494,10 @@ int read_DEHT_pointers_table(DEHT *ht)
 int calc_DEHT_last_block_per_bucket(DEHT *ht)
 {
 	int i = 0, counter = 0;
-	BLOCK_HEADER* bheader = calloc(1, sizeof(BLOCK_HEADER));;
-	TRIPLE* block = calloc(ht->header.nPairsPerBlock, sizeof(TRIPLE));
+	BLOCK_HEADER bheader;
+	TRIPLE block[ht->header.nPairsPerBlock];
 	if (ht->hashPointersForLastBlockImageInMemory)
 	{
-		free(bheader);
-		free(block);
 		return DEHT_STATUS_NOT_NEEDED;
 	}
 
@@ -494,16 +513,14 @@ int calc_DEHT_last_block_per_bucket(DEHT *ht)
 			fseek(ht->keyFP, ht->hashTableOfPointersImageInMemory[i], SEEK_SET);
 			while (1)
 			{
-				if (sizeof(bheader) != fread(bheader, 1, sizeof(bheader), ht->keyFP))
+				if (sizeof(bheader) != fread(&bheader, 1, sizeof(bheader), ht->keyFP))
 				{
 					perror("Could not read DEHT block header");
-					free(bheader);
-					free(block);
 					return DEHT_STATUS_FAIL;
 				}
-				if (bheader->next == 0)
+				if (bheader.next == 0)
 					break;
-				ht->hashPointersForLastBlockImageInMemory[i] = bheader->next;
+				ht->hashPointersForLastBlockImageInMemory[i] = bheader.next;
 			}
 
 			/* enumerate triplets on last block */
@@ -512,8 +529,6 @@ int calc_DEHT_last_block_per_bucket(DEHT *ht)
 			if (ht->header.nPairsPerBlock == fread(block, ht->header.nPairsPerBlock, sizeof(TRIPLE), ht->keyFP))
 			{
 				perror("Could not read DEHT whole block");
-				free(bheader);
-				free(block);
 				return DEHT_STATUS_FAIL;
 			}
 
