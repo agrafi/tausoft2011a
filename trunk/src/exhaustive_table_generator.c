@@ -9,14 +9,13 @@
 #include <stdlib.h>
 #include "helpers.h"
 #include "DEHT.h"
+#include "rules.h"
 
 #define ELEMENTS_PER_NODE 10
 
-#ifdef EXHAUSTIVE_TABLE_GENERATOR
-
 #define binaryHashMaker hashfun
 #define cryptHashTo64bit validfun
-
+#ifdef DEBUG
 void test1(void) {
 	int i = 0;
 	DEHT *ht;
@@ -251,47 +250,97 @@ void test3() {
 
 	printf("done!");
 }
+#endif
 
 
-int main(void)
+#ifdef EXHAUSTIVE_TABLE_GENERATOR
+
+int main(int argc, char** argv)
 {
-	/*
-	int i = 0, len = 0, datalen = 0, keylen = 0;
-	DEHT* deht = create_empty_DEHT("deht", hashfun, validfun, "SHA1", 65536, ELEMENTS_PER_NODE, 8);
-	char* keybuf = calloc(1, 20);
-	char* databuf = calloc(1, 30);
-	datalen = hexa2binary("123456", databuf, 30);
-	keylen = hexa2binary("7c4a8d09ca3762af61e59520943dc26494f8941b", keybuf, 20);
-	add_DEHT(deht, keybuf, keylen, databuf, datalen);
+	lexicon* lex = NULL;
+	DEHT* deht = NULL;
+	passgencontext* passgenctx = NULL;
+	char* prefix = argv[4];
+	char* hashname = argv[3];
+	char* lexname = argv[2];
+	char* rule = argv[1];
+	unsigned int passgensize = 0;
+	unsigned long k = 0;
+	unsigned long numOfPasswords = 0;
+	char* pass = NULL;
+	unsigned long i = 0;
+	unsigned long idx = 0;
+	unsigned long datalen, keylen;
 
-	for (i=0; i<11; i++)
+	enum Hashfunc hashfunc;
+	BasicHashFunctionPtr hashptr;
+	int hashed_password_len = 0;
+
+	char* keybuf = calloc(1, SHA1_OUTPUT_LENGTH_IN_BYTES);
+	char* hashbuf = calloc(1, 2*SHA1_OUTPUT_LENGTH_IN_BYTES + 1);
+	char* databuf = calloc(1, MAX_INPUT);
+
+	/* initialize random generator */
+	srandom(time(NULL));
+
+	if (argc != 6)
 	{
-		datalen = hexa2binary("65432100", databuf, 30);
-		keylen = hexa2binary("dd5fef9c1c1da1394d6d34b248c51be2ad740840", keybuf, 20);
-		add_DEHT(deht, keybuf, keylen, databuf, datalen);
+		fprintf(stderr, "Error: Usage exhaustive_table_generator <rule> <lexicon file name> <hash name> <DEHT prefix> <N|all>\n");
+		return 1;
 	}
-	datalen = hexa2binary("123456", databuf, 30);
-	keylen = hexa2binary("7c4a8d09ca3762af61e59520943dc26494f8941b", keybuf, 20);
-	memset(databuf, 0, 30);
-	len = query_DEHT(deht, keybuf, 20, databuf, 30);
-	memset(keybuf, 0 , 20);
-	binary2hexa(databuf, len, keybuf, 20);
-	printf("data is %s\n", keybuf);
+
+	if(strcmp("SHA1",hashname)==0)
+	{
+		hashfunc = SHA1;
+		hashptr = SHA1BasicHash;
+		hashed_password_len = SHA1_OUTPUT_LENGTH_IN_BYTES;
+	}
+	else if(strcmp("MD5",hashname)==0)
+	{
+		hashfunc = MD5;
+		hashptr = MD5BasicHash;
+		hashed_password_len = MD5_OUTPUT_LENGTH_IN_BYTES;
+	}
+	else
+	{
+		fprintf(stderr, "Error: Hash \"%s\" is not supported\n", hashname);
+		return 1;
+	}
+
+	if (strcmp(argv[5], "all") != 0)
+		k = atol(argv[5]);
+
+	deht = create_empty_DEHT(prefix, hashfun, validfun, hashname, 65536, ELEMENTS_PER_NODE, 8);
+
+	if (!deht)
+		return 1;
+
+	lex = preprocessLexicon(lexname);
+	passgenctx = createrule(rule, lex, &passgensize);
+
+	// all is specified
+	if (k == 0)
+		numOfPasswords = passgenctx->numOfPasswords - 1; // ignore the empty password
+	else
+		numOfPasswords = k;
+
+	for(i = 0; i < numOfPasswords; i++)
+	{
+		idx = (k == 0 ? i + 1: random() % (passgenctx->numOfPasswords - 1) + 1);
+		pass = generatePassword(passgenctx, lex, idx);
+		hashptr(pass, strlen(pass), hashbuf);
+		// keylen = hexa2binary(hashbuf, keybuf, SHA1_OUTPUT_LENGTH_IN_BYTES);
+#ifdef DEBUG
+		printf("The %luth password (out of %lu) for %s is %s\n", idx, passgenctx->numOfPasswords, rule, pass);
+#endif
+		add_DEHT(deht, hashbuf, hashed_password_len, pass, strlen(pass));
+		//free(pass);
+	}
+
 	lock_DEHT_files(deht);
-
-	deht = load_DEHT_from_files("deht", hashfun, validfun);
-	datalen = hexa2binary("123456", databuf, 30);
-	keylen = hexa2binary("7c4a8d09ca3762af61e59520943dc26494f8941b", keybuf, 20);
-	memset(databuf, 0, 30);
-	len = query_DEHT(deht, keybuf, 20, databuf, 30);
-	memset(keybuf, 0 , 20);
-	binary2hexa(databuf, len, keybuf, 20);
-	printf("data is %s\n", keybuf);
-	*/
-	test1();
-	test2();
-	test3(); /*needs file for test2*/
-
+	freerule(passgenctx);
+	free(keybuf);
+	free(databuf);
 	return EXIT_SUCCESS;
 }
 #endif
