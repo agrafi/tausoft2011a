@@ -11,7 +11,28 @@
 #include <ctype.h>
 #include <stdlib.h>
 
-passgencontext* preprocess(char* expression, lexicon* lex, unsigned int* passgensize)
+void freerule(passgencontext* ctx)
+{
+	int i = 0, j = 0, k = 0;
+	for (i = 0; i < ctx->numOfTerms; i++)
+	{
+		for (j = 0; j < ctx->terms[i].numOfBlocks; j++)
+		{
+			for (k = 0; k < ctx->terms[i].blocks[j].numOfCells; k++)
+			{
+				if (ctx->terms[i].blocks[j].cells[k].data)
+					free(ctx->terms[i].blocks[j].cells[k].data);
+			}
+			free(ctx->terms[i].blocks[j].cells);
+		}
+		free(ctx->terms[i].blocks);
+	}
+	free(ctx->terms);
+	free(ctx);
+	return;
+}
+
+passgencontext* createrule(char* expression, lexicon* lex, unsigned int* passgensize)
 {
 	/* scan expression and determine passcell array size */
 	int i = 0, counter = 0, j = 0, t = 0;
@@ -423,9 +444,10 @@ int main(int argc, char** argv) {
 	lexicon* lex = preprocessLexicon("/home/a/workspace/Project/lexicon.txt");
 	char* rule = calloc(1, strlen(RULE));
 	memcpy(rule, RULE, strlen(RULE) + 1);
-	passgencontext* passgenctx = preprocess(rule, lex, &passgensize);
+	passgencontext* passgenctx = createrule(rule, lex, &passgensize);
 	pass = generatePassword(passgenctx, lex, k);
 	printf("The %luth password (out of %lu) for %s is %s\n", CONST_K, passgenctx->numOfPasswords, RULE, pass);
+	freerule(passgenctx);
 	return 0;
 }
 #endif
