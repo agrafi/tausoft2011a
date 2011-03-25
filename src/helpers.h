@@ -8,7 +8,8 @@
 // #define AUTHENTICATE
 // #define RULES_PREPROCESS
 // #define EXHAUSTIVE_TABLE_GENERATOR
-#define EXHAUSTIVE_QUERY
+//#define EXHAUSTIVE_QUERY
+#define CREATE_RAINBOW_TABLE
 
 #define MD5_OUTPUT_LENGTH_IN_BYTES    16
 #define SHA1_OUTPUT_LENGTH_IN_BYTES   20
@@ -22,6 +23,19 @@
 
 #define MIN(x,y) ((x) < (y) ? (x) : (y))
 #define MAX(x,y) ((x) > (y) ? (x) : (y))
+
+typedef struct rainbow_settings_struct {
+	char 			LexiconName[MAX_FIELD];
+	unsigned int 	ChainLength;
+	unsigned int 	NumOfHashEnries;
+	unsigned int 	ElementsInBucket;
+	char			Rule[MAX_FIELD];
+	char			MainRandSeed[MAX_FIELD];
+	char			HashFunction[MAX_FIELD];
+	BasicHashFunctionPtr hashptr;
+	unsigned int 	hashed_password_len;
+	char 			OutputFilePrefix[MAX_FIELD];
+} rainbow_settings;
 
 enum Hashfunc {
 	MD5,
