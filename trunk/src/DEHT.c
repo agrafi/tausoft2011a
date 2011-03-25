@@ -58,6 +58,7 @@ DEHT *create_empty_DEHT(const char *prefix,/*add .key and .data to open two file
 	DEHT* d = calloc(1, sizeof(DEHT));
 	sprintf(d->sKeyFileName, "%s.key", prefix);
 	sprintf(d->sDataFileName, "%s.data", prefix);
+	sprintf(d->sSeedFileName, "%s.seed", prefix);
 	d->hashFunc = hashfun;
 	d->comparisonHashFunc = validfun;
 	snprintf(d->header.sHashName, sizeof(d->header.sHashName), "%s", dictName);
@@ -73,6 +74,12 @@ DEHT *create_empty_DEHT(const char *prefix,/*add .key and .data to open two file
 	if ((d->keyFP = fopen(d->sKeyFileName, "w+b")) == NULL)
 	{
 		perror("Could not open DEHT key file");
+		free(d);
+		return NULL;
+	}
+	if ((d->seedFP = fopen(d->sSeedFileName, "w+b")) == NULL)
+	{
+		perror("Could not open DEHT seed file");
 		free(d);
 		return NULL;
 	}
@@ -426,6 +433,7 @@ DEHT *load_DEHT_from_files(const char *prefix,
 	DEHT* d = calloc(1, sizeof(DEHT));
 	sprintf(d->sKeyFileName, "%s.key", prefix);
 	sprintf(d->sDataFileName, "%s.data", prefix);
+	sprintf(d->sSeedFileName, "%s.seed", prefix);
 	d->hashFunc = hashfun;
 	d->comparisonHashFunc = validfun;
 
@@ -437,6 +445,11 @@ DEHT *load_DEHT_from_files(const char *prefix,
 	if ((d->keyFP = fopen(d->sKeyFileName, "r+b")) == NULL)
 	{
 		perror("Could not open DEHT key file");
+		return NULL;
+	}
+	if ((d->seedFP = fopen(d->sSeedFileName, "r+b")) == NULL)
+	{
+		perror("Could not open DEHT seed file");
 		return NULL;
 	}
 
@@ -546,6 +559,37 @@ int calc_DEHT_last_block_per_bucket(DEHT *ht)
 			}
 			ht->anLastBlockSize[i] = counter;
 		}
+	}
+	return DEHT_STATUS_SUCCESS;
+}
+
+/************************************************************************************/
+/* Function read_DEHT_Seed loads rainbow table seeds from disk into RAM.			*/
+/* Input: DEHT to act on, output buffer and its size.								*/
+/* Return value: DEHT_STATUS_FAIL on failure, or DEHT_STATUS_SUCCESS on success.	*/
+/************************************************************************************/
+int read_DEHT_Seed(DEHT * d, void * table,int size)
+{
+	if (size != fread(table, sizeof(unsigned long), size, d->seedFP))
+	{
+		perror("Could not read DEHT seed table");
+		return DEHT_STATUS_FAIL;
+	}
+	return DEHT_STATUS_SUCCESS;
+}
+
+
+/************************************************************************************/
+/* Function write_DEHT_Seed dumps rainbow table seeds from RAM into disk.			*/
+/* Input: DEHT to act on, input buffer and its size.								*/
+/* Return value: DEHT_STATUS_FAIL on failure, or DEHT_STATUS_SUCCESS on success.	*/
+/************************************************************************************/
+int write_DEHT_Seed(DEHT * d, const void * table,int size)
+{
+	if (size != fwrite(table, sizeof(unsigned long), size, d->seedFP))
+	{
+		perror("Could not write DEHT seed table");
+		return DEHT_STATUS_FAIL;
 	}
 	return DEHT_STATUS_SUCCESS;
 }
