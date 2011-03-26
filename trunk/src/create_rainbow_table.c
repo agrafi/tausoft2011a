@@ -13,11 +13,12 @@
 
 int parseSettings(rainbow_settings* settings, char* inipath)
 {
-	settings->ChainLength = 5;
+	settings->ChainLength = 4;
 	settings->ElementsInBucket = 8;
 	settings->NumOfHashEnries = pow(2, 16);
 	snprintf(settings->OutputFilePrefix, MAX_INPUT, "%s", "rainbow");
-	snprintf(settings->LexiconName, MAX_INPUT, "%s", "/home/aviv/workspace/tausoft2011a/lexicon.txt");
+	// snprintf(settings->LexiconName, MAX_INPUT, "%s", "/home/aviv/workspace/tausoft2011a/lexicon.txt");
+	snprintf(settings->LexiconName, MAX_INPUT, "%s", "/home/a/workspace/tausoft2011a/lexicon.txt");
 	snprintf(settings->MainRandSeed, MAX_INPUT, "%s", "asaf");
 	snprintf(settings->Rule, MAX_INPUT, "%s", "^2");
 	snprintf(settings->HashFunction, MAX_INPUT, "%s", "MD5");
@@ -37,7 +38,7 @@ int main(int argc, char** argv)
 	passgencontext* passgenctx = NULL;
 	unsigned int passgensize = 0;
 	unsigned long k = 0;
-	unsigned long numOfChains = 10;
+	unsigned long numOfChains = 1;
 	char* pass, *origpass = NULL;
 	unsigned long i = 0, j = 0;
 	unsigned long idx = 0;
@@ -87,11 +88,11 @@ int main(int argc, char** argv)
 	seeds = calloc(settings.ChainLength, sizeof(seeds));
 	/* initialize random generator */
 	srandom(pseudo_random_function(settings.MainRandSeed, strlen(settings.MainRandSeed), 0));
-	for(i = 0; i < settings.ChainLength; i++)
+	for(i = 0; i < settings.ChainLength - 1; i++)
 	{
 		seeds[i] = random();
 	}
-	write_DEHT_Seed(deht, seeds, settings.ChainLength);
+	write_DEHT_Seed(deht, seeds, settings.ChainLength - 1);
 
 	// TODO Define numOfChains
 	for(i = 0; i < numOfChains; i++)
@@ -99,12 +100,20 @@ int main(int argc, char** argv)
 		idx = random() % (passgenctx->numOfPasswords - 1) + 1;
 		origpass = pass = generatePassword(passgenctx, lex, idx);
 		settings.hashptr(pass, strlen(pass), hashbuf);
-		for (j = 0; j <settings.ChainLength; j++)
+#ifdef DEBUG
+			binary2hexa(hashbuf, settings.hashed_password_len, hexbuf, sizeof(hexbuf));
+			printf("\t%s \t%s\n", pass, hexbuf);
+#endif
+		for (j = 0; j <settings.ChainLength - 1; j++)
 		{
 			k = pseudo_random_function(hashbuf, settings.hashed_password_len, seeds[j]);
 			pass = generatePassword(passgenctx, lex, k);
 			settings.hashptr(pass, strlen(pass), hashbuf);
 			// free(pass);
+#ifdef DEBUG
+			binary2hexa(hashbuf, settings.hashed_password_len, hexbuf, sizeof(hexbuf));
+			printf("\t%s \t%s\n", pass, hexbuf);
+#endif
 		}
 #ifdef DEBUG
 		binary2hexa(hashbuf, settings.hashed_password_len, hexbuf, sizeof(hexbuf));
@@ -115,6 +124,7 @@ int main(int argc, char** argv)
 
 	lock_DEHT_files(deht);
 	freerule(passgenctx);
+	free(seeds);
 	// TODO freelex
 	return EXIT_SUCCESS;
 }
