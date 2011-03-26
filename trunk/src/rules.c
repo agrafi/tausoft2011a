@@ -32,6 +32,37 @@ void freerule(passgencontext* ctx)
 	return;
 }
 
+
+void resetrule(passgencontext* ctx)
+{
+	int i = 0, j = 0, k = 0;
+	for (i = 0; i < ctx->numOfTerms; i++)
+	{
+		for (j = 0; j < ctx->terms[i].numOfBlocks; j++)
+		{
+			for (k = 0; k < ctx->terms[i].blocks[j].numOfCells; k++)
+			{
+				switch (ctx->terms[i].blocks[j].cells[k].type)
+				{
+				case NUMBERS:
+				case ALPHANUMERIC:
+				case LETTERS:
+				case CHARACTER:
+					memset(ctx->terms[i].blocks[j].cells[k].data, 0, 2);
+					break;
+				case LEX:
+				case LEXCS:
+					ctx->terms[i].blocks[j].cells[k].data = NULL;
+					break;
+				default:
+					fprintf(stderr, "Unknown cell type %d\n", ctx->terms[i].blocks[j].cells[k].type);
+				}
+			}
+		}
+	}
+	return;
+}
+
 passgencontext* createrule(char* expression, lexicon* lex, unsigned int* passgensize)
 {
 	/* scan expression and determine passcell array size */
@@ -332,6 +363,7 @@ char* advanceCell(passcell* cell, lexicon* lex, unsigned long k)
 		}
 		/* apply the relevant transformation on the lower case form of the word */
 		len = lex->words[counter].len;
+		memset(lex->words[counter].playground, 0, len);
 		k--; /* convert back to 0 based counting, for the bitwise comparison*/
 		while (len > 0)
 		{
@@ -369,7 +401,7 @@ char* advanceBlock(passblock* block, lexicon* lex, unsigned long k)
 	char* retpass = NULL;
 	char* retpasstemp = NULL;
 	char* partialpass = NULL;
-	retpass = malloc(sizeof(char));
+	retpass = calloc(1, sizeof(char));
 	if (k == 0)
 #ifdef DEBUG
 		return "$";
@@ -403,8 +435,10 @@ char* generatePassword(passgencontext* passgenctx, lexicon* lex, unsigned long k
 	char* retpass = NULL;
 	char* retpasstemp = NULL;
 	char* partialpass = NULL;
-	retpass = malloc(sizeof(char));
+	retpass = calloc(1, sizeof(char));
 	k %= passgenctx->numOfPasswords;
+
+	resetrule(passgenctx);
 
 	/* Locate relevant term */
 	while (k > passgenctx->terms[currentTermIndex].numOfPasswords)

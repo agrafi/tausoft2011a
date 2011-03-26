@@ -44,7 +44,8 @@ chain, in other-words, not in our Rainbow-Table.
 char* queryRainbowTable(DEHT* deht, unsigned char* target, rainbow_settings* settings, unsigned long* seeds,
 		passgencontext* passgenctx, lexicon* lex)
 {
-	unsigned long j = 0, i = 0, k = 0, n = 0, h = 0;
+	long j = 0;
+	unsigned long i = 0, k = 0, n = 0, h = 0;
 	char curHash[SHA1_OUTPUT_LENGTH_IN_BYTES];
 	char* pass = NULL;
 	char tryThisPassword[MAX_MATCHED_PASSWORDS * MAX_FIELD];
@@ -93,10 +94,7 @@ char* queryRainbowTable(DEHT* deht, unsigned char* target, rainbow_settings* set
 			if (j == 0) pass = curPass;
 
 			if (!memcmp(curHash, target, settings->hashed_password_len))
-			{
-				printf("Found %s", pass);
 				return pass;
-			}
 		}
 
 	}
@@ -151,12 +149,7 @@ int main(int argc, char** argv)
 	{
 		memset(&hashbuf, 0, sizeof(hashbuf));
 		memset(&databuf, 0, sizeof(databuf));
-#ifdef _DEBUG
 		cmd = readHashFromUser(hashbuf);
-#else
-		sprintf(hashbuf, "%s", "1c383cd30b7c298ab50293adfecb7b18");
-		cmd = CMD_VALID;
-#endif
 		switch(cmd)
 		{
 		case CMD_QUIT:
