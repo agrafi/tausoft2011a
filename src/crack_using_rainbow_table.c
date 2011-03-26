@@ -80,7 +80,7 @@ char* queryRainbowTable(DEHT* deht, unsigned char* target, rainbow_settings* set
 		for(h = 0; h < n; h++)
 		{
 			// set curPass to tryThisPassword[h]
-			memset(curPass, 0, sizeof(curPass));
+			memset(curPass, 0, MAX_FIELD);
 			memcpy(curPass, dataPointers[h], dataPointers[h+1] - dataPointers[h]);
 			settings->hashptr(curPass, strlen(curPass), curHash);
 			for (i = 0; i < j; i++)
