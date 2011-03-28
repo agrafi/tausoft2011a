@@ -20,7 +20,7 @@ int parseSettings(rainbow_settings* settings, char* inipath)
 	// snprintf(settings->LexiconName, MAX_INPUT, "%s", "/home/aviv/workspace/tausoft2011a/lexicon.txt");
 	snprintf(settings->LexiconName, MAX_INPUT, "%s", "/home/a/workspace/tausoft2011a/lexicon.txt");
 	snprintf(settings->MainRandSeed, MAX_INPUT, "%s", "asaf");
-	snprintf(settings->Rule, MAX_INPUT, "%s", "#^1*1");
+	snprintf(settings->Rule, MAX_INPUT, "%s", "#^1*1+@?^3");
 	snprintf(settings->HashFunction, MAX_INPUT, "%s", "MD5");
 	settings->hashed_password_len = MD5_OUTPUT_LENGTH_IN_BYTES;
 	settings->hashptr = MD5BasicHash;
@@ -38,7 +38,7 @@ int main(int argc, char** argv)
 	passgencontext* passgenctx = NULL;
 	unsigned int passgensize = 0;
 	unsigned long k = 0;
-	unsigned long numOfChains = 5;
+	unsigned long numOfChains = 50;
 	char* pass, *origpass = NULL;
 	unsigned long i = 0, j = 0;
 	unsigned long idx = 0;
@@ -123,7 +123,7 @@ int main(int argc, char** argv)
 	}
 
 	lock_DEHT_files(deht);
-	freerule(passgenctx);
+	// freerule(passgenctx);
 	free(seeds);
 	// TODO freelex
 	return EXIT_SUCCESS;

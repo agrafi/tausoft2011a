@@ -123,9 +123,6 @@ passgencontext* createrule(char* expression, lexicon* lex, unsigned int* passgen
 			current++;
 		}
 		/* allocate and init passblock array */
-#if DEBUG
-		printf("Allocating %d blocks\n", counter);
-#endif
 		passgen = calloc(counter,sizeof(passblock));
 		/* configure every passblock item according to expression */
 		current = retcontext->terms[t].term;

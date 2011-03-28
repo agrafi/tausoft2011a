@@ -70,8 +70,8 @@ char* queryRainbowTable(DEHT* deht, unsigned char* target, rainbow_settings* set
 		}
 		// Multi-query in disk-embedded hash table with key: curHash.
 		// Get data (passwords set) to array: tryThisPassword[0..n]
-		n = mult_query_DEHT(deht, curHash, settings->hashed_password_len, tryThisPassword, MAX_MATCHED_PASSWORDS,
-				dataPointers, MAX_MATCHED_PASSWORDS);
+		n = mult_query_DEHT(deht, curHash, settings->hashed_password_len, tryThisPassword,
+				MAX_MATCHED_PASSWORDS * MAX_FIELD, dataPointers, MAX_MATCHED_PASSWORDS);
 
 		// if n=0 (no password is found), we guessed wrong j, continue loop other j.
 		if (n == 0)
