@@ -8,6 +8,8 @@
 #ifndef RULES_H_
 #define RULES_H_
 
+#include "helpers.h"
+
 enum CELLTYPE {
 	NUMBERS,
 	LETTERS,
@@ -42,6 +44,7 @@ typedef struct passgencontext_struct {
 	unsigned long numOfTerms;
 	unsigned long numOfPasswords;
 	passterm* terms;
+	char rule[MAX_FIELD];
 } passgencontext;
 
 typedef struct lexword_struct {

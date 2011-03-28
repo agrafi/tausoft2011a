@@ -11,23 +11,6 @@
 #include "DEHT.h"
 #include "rules.h"
 
-int parseSettings(rainbow_settings* settings, char* inipath)
-{
-	settings->ChainLength = 12;
-	settings->ElementsInBucket = 8;
-	settings->NumOfHashEnries = pow(2, 16);
-	snprintf(settings->OutputFilePrefix, MAX_INPUT, "%s", "rainbow");
-	// snprintf(settings->LexiconName, MAX_INPUT, "%s", "/home/aviv/workspace/tausoft2011a/lexicon.txt");
-	snprintf(settings->LexiconName, MAX_INPUT, "%s", "/home/a/workspace/tausoft2011a/lexicon.txt");
-	snprintf(settings->MainRandSeed, MAX_INPUT, "%s", "asaf");
-	snprintf(settings->Rule, MAX_INPUT, "%s", "#^1*1+@?^3");
-	snprintf(settings->HashFunction, MAX_INPUT, "%s", "MD5");
-	settings->hashed_password_len = MD5_OUTPUT_LENGTH_IN_BYTES;
-	settings->hashptr = MD5BasicHash;
-	return 1;
-}
-
-
 #ifdef CREATE_RAINBOW_TABLE
 
 int main(int argc, char** argv)
@@ -56,9 +39,9 @@ int main(int argc, char** argv)
 		return 1;
 	}
 
+	memset(&settings, 0, sizeof(settings));
 	if (!parseSettings(&settings, argv[1]))
 		return 2;
-
 
 	lex = preprocessLexicon(settings.LexiconName);
 	passgenctx = createrule(settings.Rule, lex, &passgensize);
@@ -94,7 +77,7 @@ int main(int argc, char** argv)
 	}
 	write_DEHT_Seed(deht, seeds, settings.ChainLength - 1);
 
-	// TODO Define numOfChains
+	numOfChains = 10 * (passgenctx->numOfPasswords / settings.ChainLength);
 	for(i = 0; i < numOfChains; i++)
 	{
 		idx = random() % (passgenctx->numOfPasswords - 1) + 1;
@@ -106,13 +89,15 @@ int main(int argc, char** argv)
 #endif
 		for (j = 0; j <settings.ChainLength - 1; j++)
 		{
+			if ((i == 3174) && j == 62)
+				printf("Blat\n");
 			k = pseudo_random_function(hashbuf, settings.hashed_password_len, seeds[j]);
 			pass = generatePassword(passgenctx, lex, k);
 			settings.hashptr(pass, strlen(pass), hashbuf);
 			// free(pass);
 #ifdef DEBUG
 			binary2hexa(hashbuf, settings.hashed_password_len, hexbuf, sizeof(hexbuf));
-			printf("\t%s \t%s\n", pass, hexbuf);
+			// printf("\t%s \t%s\n", pass, hexbuf);
 #endif
 		}
 #ifdef DEBUG
@@ -126,6 +111,7 @@ int main(int argc, char** argv)
 	// freerule(passgenctx);
 	free(seeds);
 	// TODO freelex
+	printf("Done.\n");
 	return EXIT_SUCCESS;
 }
 #endif
