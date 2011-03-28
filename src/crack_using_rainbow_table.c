@@ -158,14 +158,21 @@ int main(int argc, char** argv)
 		case CMD_CONTINUE:
 			break;
 		case CMD_VALID:
-			// key buf holds the hashed password string
-			if (strlen(hashbuf) != settings.hashed_password_len * 2)
+			if (hashbuf[0] == '!')
 			{
-				fprintf(stderr, "Error: Wrong hash size \n");
-				break;
+				memcpy(hexbuf, hashbuf+1, strlen(hashbuf));
+				settings.hashptr(hexbuf, strlen(hexbuf), keybuf);
 			}
-
-			keylen = hexa2binary(hashbuf, keybuf, sizeof(keybuf));
+			else
+			{
+				if (strlen(hashbuf) != settings.hashed_password_len * 2)
+				{
+					// key buf holds the hashed password string
+					fprintf(stderr, "Error: Wrong hash size \n");
+					break;
+				}
+				keylen = hexa2binary(hashbuf, keybuf, sizeof(keybuf));
+			}
 			pass = queryRainbowTable(deht, keybuf, &settings, seeds, passgenctx, lex);
 			if (pass)
 				printf("Try to login with password \"%s\"\n", pass);

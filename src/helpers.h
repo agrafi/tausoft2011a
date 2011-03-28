@@ -25,24 +25,33 @@
 #define MIN(x,y) ((x) < (y) ? (x) : (y))
 #define MAX(x,y) ((x) > (y) ? (x) : (y))
 
+#define PARAM_INVALID 0
+#define PARAM_LEXNAME 1
+#define PARAM_CHAIN_LENGTH 2
+#define PARAM_NUM_OF_HASH_ENTRIES 3
+#define PARAM_ELEMS_IN_BUCKET 4
+#define PARAM_RULE 5
+#define PARAM_MAIN_RAND_SEED 6
+#define PARAM_HASH_FUNCTION 7
+#define PARAM_OUTPUT_FILE_PREFIX 8
+
 typedef struct rainbow_settings_struct {
-	char 			LexiconName[MAX_FIELD];
+	char 			LexiconName[MAX_INPUT];
 	unsigned int 	ChainLength;
 	unsigned int 	NumOfHashEnries;
 	unsigned int 	ElementsInBucket;
-	char			Rule[MAX_FIELD];
-	char			MainRandSeed[MAX_FIELD];
-	char			HashFunction[MAX_FIELD];
+	char			Rule[MAX_INPUT];
+	char			MainRandSeed[MAX_INPUT];
+	char			HashFunction[MAX_INPUT];
 	BasicHashFunctionPtr hashptr;
 	unsigned int 	hashed_password_len;
-	char 			OutputFilePrefix[MAX_FIELD];
+	char 			OutputFilePrefix[MAX_INPUT];
 } rainbow_settings;
 
 enum Hashfunc {
 	MD5,
 	SHA1
 };
-
 
 typedef struct record_tag {
 	enum Hashfunc hash;
@@ -60,4 +69,5 @@ void printHash(record* r, FILE* file);
 int fileexists(char* filename);
 int numOfLines(char* filename);
 int readLineFromUser(record* newuser);
+int parseSettings(rainbow_settings* settings, char* inipath);
 #endif

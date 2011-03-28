@@ -63,14 +63,17 @@ void resetrule(passgencontext* ctx)
 	return;
 }
 
-passgencontext* createrule(char* expression, lexicon* lex, unsigned int* passgensize)
+passgencontext* createrule(char* rule, lexicon* lex, unsigned int* passgensize)
 {
 	/* scan expression and determine passcell array size */
 	int i = 0, counter = 0, j = 0, t = 0;
 	passblock* passgen = NULL;
-	char* current = expression;
 	passgencontext* retcontext = calloc(1, sizeof(passgencontext));
 	retcontext->numOfTerms = 1;
+	memcpy(retcontext->rule, rule, strlen(rule) + 1);
+	char* expression = retcontext->rule;
+	char* current = expression;
+
 
 	for (i=0; i<strlen(expression); i++)
 	{
@@ -393,8 +396,8 @@ char* advanceCell(passcell* cell, lexicon* lex, unsigned long k)
 
 char* advanceBlock(passblock* block, lexicon* lex, unsigned long k)
 {
-	unsigned int currentCellIndex = block->numOfCells - 1;
-	unsigned int retpasssize, partialsize;
+	unsigned long currentCellIndex = block->numOfCells - 1;
+	unsigned long retpasssize, partialsize;
 	char* retpass = NULL;
 	char* retpasstemp = NULL;
 	char* partialpass = NULL;
@@ -426,9 +429,9 @@ char* advanceBlock(passblock* block, lexicon* lex, unsigned long k)
 
 char* generatePassword(passgencontext* passgenctx, lexicon* lex, unsigned long k)
 {
-	unsigned int currentTermIndex = 0;
-	unsigned int currentBlockIndex = 0;
-	unsigned int retpasssize, partialsize;
+	unsigned long currentTermIndex = 0;
+	unsigned long currentBlockIndex = 0;
+	unsigned long retpasssize, partialsize;
 	char* retpass = NULL;
 	char* retpasstemp = NULL;
 	char* partialpass = NULL;
@@ -438,14 +441,15 @@ char* generatePassword(passgencontext* passgenctx, lexicon* lex, unsigned long k
 	resetrule(passgenctx);
 
 	/* Locate relevant term */
-	while (k > passgenctx->terms[currentTermIndex].numOfPasswords)
+	while (k >= passgenctx->terms[currentTermIndex].numOfPasswords)
 	{
 		k -= passgenctx->terms[currentTermIndex].numOfPasswords;
 		currentTermIndex++;
 	}
 	currentBlockIndex = passgenctx->terms[currentTermIndex].numOfBlocks - 1;
 
-	if (k==0) return "Empty Password!";
+	// if k = range1*range2*...*rangem, treat as k == 1
+	if (k==0) k++;
 
 	while (k != 0)
 	{
@@ -461,6 +465,8 @@ char* generatePassword(passgencontext* passgenctx, lexicon* lex, unsigned long k
 		free(retpass);
 		retpass = retpasstemp;
 		k = k / passgenctx->terms[currentTermIndex].blocks[currentBlockIndex].range;
+		if (currentBlockIndex == 0)
+			break;
 		currentBlockIndex--;
 	}
 	return retpass;
