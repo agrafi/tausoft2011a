@@ -13,53 +13,17 @@
 
 void freerule(passgencontext* ctx)
 {
-	int i = 0, j = 0, k = 0;
+	int i = 0, j = 0;
 	for (i = 0; i < ctx->numOfTerms; i++)
 	{
 		for (j = 0; j < ctx->terms[i].numOfBlocks; j++)
 		{
-			for (k = 0; k < ctx->terms[i].blocks[j].numOfCells; k++)
-			{
-				if (ctx->terms[i].blocks[j].cells[k].data)
-					free(ctx->terms[i].blocks[j].cells[k].data);
-			}
 			free(ctx->terms[i].blocks[j].cells);
 		}
 		free(ctx->terms[i].blocks);
 	}
 	free(ctx->terms);
 	free(ctx);
-	return;
-}
-
-
-void resetrule(passgencontext* ctx)
-{
-	int i = 0, j = 0, k = 0;
-	for (i = 0; i < ctx->numOfTerms; i++)
-	{
-		for (j = 0; j < ctx->terms[i].numOfBlocks; j++)
-		{
-			for (k = 0; k < ctx->terms[i].blocks[j].numOfCells; k++)
-			{
-				switch (ctx->terms[i].blocks[j].cells[k].type)
-				{
-				case NUMBERS:
-				case ALPHANUMERIC:
-				case LETTERS:
-				case CHARACTER:
-					memset(ctx->terms[i].blocks[j].cells[k].data, 0, 2);
-					break;
-				case LEX:
-				case LEXCS:
-					ctx->terms[i].blocks[j].cells[k].data = NULL;
-					break;
-				default:
-					fprintf(stderr, "Unknown cell type %d\n", ctx->terms[i].blocks[j].cells[k].type);
-				}
-			}
-		}
-	}
 	return;
 }
 
@@ -136,82 +100,70 @@ passgencontext* createrule(char* rule, lexicon* lex, unsigned int* passgensize)
 			{
 			case '*':
 				passgen[i].type = LETTERS;
-				passgen[i].data = NULL;
 				passgen[i].numOfCells = atoi(current+1);
 				passgen[i].cells = calloc(passgen[i].numOfCells, sizeof(passcell));
 				for(j=0; j<passgen[i].numOfCells; j++)
 				{
 					passgen[i].cells[j].type = LETTERS;
 					passgen[i].cells[j].range = 2*26;
-					passgen[i].cells[j].data = calloc(2, sizeof(char));
 				}
 				i++;
 				current++;
 				break;
 			case '^':
 				passgen[i].type = NUMBERS;
-				passgen[i].data = NULL;
 				passgen[i].numOfCells = atoi(current+1);
 				passgen[i].cells = calloc(passgen[i].numOfCells, sizeof(passcell));
 				for(j=0; j<passgen[i].numOfCells; j++)
 				{
 					passgen[i].cells[j].type = NUMBERS;
 					passgen[i].cells[j].range = 10;
-					passgen[i].cells[j].data = calloc(2, sizeof(char));
 				}
 				i++;
 				current++;
 				break;
 			case '%':
 				passgen[i].type = ALPHANUMERIC;
-				passgen[i].data = NULL;
 				passgen[i].numOfCells = atoi(current+1);
 				passgen[i].cells = calloc(passgen[i].numOfCells, sizeof(passcell));
 				for(j=0; j<passgen[i].numOfCells; j++)
 				{
 					passgen[i].cells[j].type = ALPHANUMERIC;
 					passgen[i].cells[j].range = 10 + 26 + 4;;
-					passgen[i].cells[j].data = calloc(2, sizeof(char));
 				}
 				i++;
 				current++;
 				break;
 			case '?':
 				passgen[i].type = CHARACTER;
-				passgen[i].data = NULL;
 				passgen[i].numOfCells = 1;
 				passgen[i].cells = calloc(passgen[i].numOfCells, sizeof(passcell));
 				for(j=0; j<passgen[i].numOfCells; j++)
 				{
 					passgen[i].cells[j].type = CHARACTER;
 					passgen[i].cells[j].range = (126 - 32) + 1;
-					passgen[i].cells[j].data = calloc(2, sizeof(char));
 				}
 				i++;
 				break;
 			case '@':
 				passgen[i].type = LEXCS;
-				passgen[i].data = NULL;
 				passgen[i].numOfCells = 1;
 				passgen[i].cells = calloc(passgen[i].numOfCells, sizeof(passcell));
 				for(j=0; j<passgen[i].numOfCells; j++)
 				{
 					passgen[i].cells[j].type = LEXCS;
 					passgen[i].cells[j].range = lex->numOfWordsInLexicon + 1;
-					passgen[i].cells[j].data = NULL;
 				}
 				i++;
 				break;
 			case '#':
 				passgen[i].type = LEX;
-				passgen[i].data = NULL;
 				passgen[i].numOfCells = 1;
 				passgen[i].cells = calloc(passgen[i].numOfCells, sizeof(passcell));
 				for(j=0; j<passgen[i].numOfCells; j++)
 				{
 					passgen[i].cells[j].type = LEX;
 					passgen[i].cells[j].range = lex->sumOfWordsPermutationsInLexicon + 1;
-					passgen[i].cells[j].data = NULL;
 				}
 				i++;
 				break;
@@ -261,10 +213,25 @@ passgencontext* createrule(char* rule, lexicon* lex, unsigned int* passgensize)
 	return retcontext;
 }
 
+void freelex(lexicon* lex)
+{
+	int i = 0;
+
+	for (i=0; i < lex->numOfWordsInLexicon; i++)
+	{
+		free(lex->words[i].wordlower);
+		free(lex->words[i].playground);
+		lex->words[i].wordlower = lex->words[i].playground = NULL;
+	}
+	free(lex->words);
+	free(lex->buffer);
+	free(lex);
+	return;
+}
+
 lexicon* preprocessLexicon(char* filename)
 {
 	FILE* f = NULL;
-	char* buffer = NULL;
 	unsigned long buffersize = 0;
 	int counter = 0;
 	int i = 0, j = 0;
@@ -277,32 +244,32 @@ lexicon* preprocessLexicon(char* filename)
 	/* TODO check return values! */
 	fseek(f, 0, SEEK_END);
 	buffersize = ftell(f) + 1; /* room for additional \n */
-	buffer = calloc(1, buffersize);
+	lex->buffer = calloc(1, buffersize);
 	rewind(f);
-	fread(buffer, buffersize, 1, f);
+	fread(lex->buffer, buffersize, 1, f);
 	for (i=0; i<buffersize; i++)
 	{
-		if(isalpha(buffer[i]))
+		if(isalpha(lex->buffer[i]))
 			lex->numOfLettersInLexicon++;
-		if(buffer[i] == '\n')
+		if(lex->buffer[i] == '\n')
 		{
 			lex->numOfWordsInLexicon++;
 		}
 	}
 	/* check last char */
-	if (buffer[i-2] != '\n')
+	if (lex->buffer[i-2] != '\n')
 	{
 		lex->numOfWordsInLexicon++;
-		buffer[i] = '\n';
+		lex->buffer[i] = '\n';
 	}
 
 	lex->words = calloc(lex->numOfWordsInLexicon, sizeof(lexword));
-	lex->words[0].word = buffer;
+	lex->words[0].word = lex->buffer;
 	for (i=0; i<buffersize && counter < lex->numOfWordsInLexicon; i++)
 	{
-		if(buffer[i] == '\n')
+		if(lex->buffer[i] == '\n')
 		{
-			buffer[i] = '\0';
+			lex->buffer[i] = '\0';
 			lex->words[counter].len = strlen(lex->words[counter].word);
 			lex->words[counter].wordlower = calloc(1, lex->words[counter].len);
 			lex->words[counter].playground = calloc(1, lex->words[counter].len);
@@ -317,41 +284,43 @@ lexicon* preprocessLexicon(char* filename)
 			counter++;
 			if (counter == lex->numOfWordsInLexicon)
 				break;
-			lex->words[counter].word = buffer+i+1;
+			lex->words[counter].word = lex->buffer+i+1;
 		}
 	}
 
 	return lex;
 }
 
-char* advanceCell(passcell* cell, lexicon* lex, unsigned long k, char* pass)
+void advanceCell(passcell* cell, lexicon* lex, unsigned long k, char* pass)
 {
 	unsigned long counter = 0, j = 0, len = 0;
 	char temp[MAX_FIELD + 1] = {0};
+	char celldata[MAX_FIELD + 1] = {0};
+
 	switch (cell->type)
 	{
 	case NUMBERS:
-		*cell->data = '0' + k;
+		celldata[0] = '0' + k;
 		break;
 	case LETTERS:
-		*cell->data = (k > 25 ? 'A' + k + 6 :  'A' + k);
+		celldata[0] = (k > 25 ? 'A' + k + 6 :  'A' + k);
 		break;
 	case ALPHANUMERIC:
 		if (k < 26)
-			*cell->data = 'a' + k;
+			celldata[0] = 'a' + k;
 		else if (k < 36)
-			*cell->data = '0' + k - 26;
+			celldata[0] = '0' + k - 26;
 		else if (k == 36)
-			*cell->data = '!';
+			celldata[0] = '!';
 		else if (k == 37)
-			*cell->data = '?';
+			celldata[0] = '?';
 		else if (k == 38)
-			*cell->data = '~';
+			celldata[0] = '~';
 		else if (k == 39)
-			*cell->data = '.';
+			celldata[0] = '.';
 		break;
 	case CHARACTER:
-		*cell->data = ' ' + k;
+		celldata[0] = ' ' + k;
 		break;
 	case LEX:
 		counter = 0;
@@ -382,17 +351,17 @@ char* advanceCell(passcell* cell, lexicon* lex, unsigned long k, char* pass)
 			len--;
 			j++;
 		}
-		cell->data = lex->words[counter].playground;
+		strncpy(celldata, lex->words[counter].playground, MAX_FIELD);
 		break;
 	case LEXCS:
-		cell->data = lex->words[k].word;
+		strncpy(celldata, lex->words[k].word, MAX_FIELD);
 		break;
 	default:
 		fprintf(stderr, "Unknown cell type %d\n", cell->type);
 	}
-	snprintf(temp, MAX_FIELD, "%s%s", cell->data, pass);
+	snprintf(temp, MAX_FIELD, "%s%s", celldata, pass);
 	strncpy(pass, temp, MAX_FIELD);
-	return cell->data;
+	return;
 }
 
 
@@ -423,8 +392,6 @@ char* generatePassword(passgencontext* passgenctx, lexicon* lex, unsigned long k
 	unsigned long currentBlockIndex = 0;
 	memset(pass, 0, MAX_FIELD); /* zero password */
 	k %= passgenctx->numOfPasswords;
-
-	resetrule(passgenctx);
 
 	/* Locate relevant term */
 	while (k >= passgenctx->terms[currentTermIndex].numOfPasswords)

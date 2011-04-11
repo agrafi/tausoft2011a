@@ -141,6 +141,7 @@ int add_DEHT ( DEHT *ht, const unsigned char *key, int keyLength,
 	TRIPLE triple;
 	memset(&bheader, 0, sizeof(bheader));
 	memset(&block, 0, sizeof(block));
+	memset(&triple, 0, sizeof(triple));
 
 	if (0 != fseek(ht->keyFP, 0, SEEK_END))
 	{
