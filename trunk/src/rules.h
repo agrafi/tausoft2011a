@@ -60,4 +60,8 @@ typedef struct lexicon_struct {
 	unsigned long sumOfWordsPermutationsInLexicon;
 	lexword* words;
 } lexicon;
+
+char* generatePassword(passgencontext* passgenctx, lexicon* lex, unsigned long k, char* pass);
+lexicon* preprocessLexicon(char* filename);
+passgencontext* createrule(char* rule, lexicon* lex, unsigned int* passgensize);
 #endif /* RULES_H_ */

@@ -3,6 +3,7 @@
 #include <assert.h>
 #include <string.h>
 #include <errno.h>
+#include <ctype.h>
 #include "sha1.h"
 #include "md5.h"
 #include "misc.h"
@@ -66,7 +67,6 @@ int extractParameterNameValue(char* buffer, char* parameterName, char* parameter
 	int retValue = PARAM_INVALID;
 	char* currentPtr = buffer;
 	char* paramPtr = parameterName;
-	int bufferlen = strlen(buffer);
 
 	// skip white spaces
 	while (*currentPtr && isblank(*currentPtr))
@@ -200,7 +200,7 @@ int parseSettings(rainbow_settings* settings, char* inipath)
 			snprintf(settings->OutputFilePrefix, MAX_INPUT, "%s", parameterValue);
 			break;
 		default:
-			fprintf(stderr, "Unknown parameter code %s. aborting.", parameterCode);
+			fprintf(stderr, "Unknown parameter code %d. aborting.", parameterCode);
 		}
 	}
 

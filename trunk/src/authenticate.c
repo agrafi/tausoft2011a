@@ -40,11 +40,11 @@ int readLineFromFile(FILE* file, record* newuser)
 		return CMD_QUIT;
 	}
 	*position = '\0';
-	strncpy(&(newuser->username), buffer, position - buffer);
-	memset((const unsigned char*)&(newuser->hashed_password), 0, sizeof(newuser->hashed_password));
-	hexa2binary(position+1, &(newuser->hashed_password), MIN(newuser->hashed_password_len, sizeof(newuser->hashed_password)));
+	strncpy((char*)&(newuser->username), buffer, position - buffer);
+	memset((void*)&(newuser->hashed_password), 0, sizeof(newuser->hashed_password));
+	hexa2binary(position+1, (unsigned char*)&(newuser->hashed_password), MIN(newuser->hashed_password_len, sizeof(newuser->hashed_password)));
 #ifdef DEBUG
-	printf("user: %s pass: %s\n", newuser->username, &(newuser->password));
+	printf("user: %s pass: %s\n", newuser->username, (char*)&(newuser->password));
 	printHash(newuser, stdout); printf("\n");
 #endif
 	free(buffer);

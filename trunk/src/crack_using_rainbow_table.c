@@ -47,11 +47,10 @@ char* queryRainbowTable(DEHT* deht, unsigned char* target, rainbow_settings* set
 	long j = 0;
 	unsigned long i = 0, k = 0, n = 0, h = 0;
 	char curHash[SHA1_OUTPUT_LENGTH_IN_BYTES];
-	char* pass = NULL;
 	char tryThisPassword[MAX_MATCHED_PASSWORDS * MAX_FIELD];
 	char* dataPointers[MAX_MATCHED_PASSWORDS + 1]; // reserve extra slot
-	char tempPass[MAX_FIELD];
-	char* curPass = tempPass;
+	char pass[MAX_FIELD + 1] = {0};
+	char curPass[MAX_FIELD + 1] = {0};
 
 	//Gamble that our password is in location "j" in some chain as follow:
 	for (j = settings->ChainLength - 1; j >= 0; j--)
@@ -64,7 +63,7 @@ char* queryRainbowTable(DEHT* deht, unsigned char* target, rainbow_settings* set
 		for (i = j; i < settings->ChainLength - 1; i++)
 		{
 			k = pseudo_random_function(curHash, settings->hashed_password_len, seeds[i]);
-			pass = generatePassword(passgenctx, lex, k);
+			generatePassword(passgenctx, lex, k, pass);
 			settings->hashptr(pass, strlen(pass), curHash);
 			// TODO free pass
 		}
@@ -86,12 +85,12 @@ char* queryRainbowTable(DEHT* deht, unsigned char* target, rainbow_settings* set
 			for (i = 0; i < j; i++)
 			{
 				k = pseudo_random_function(curHash, settings->hashed_password_len, seeds[i]);
-				pass = generatePassword(passgenctx, lex, k);
+				generatePassword(passgenctx, lex, k, pass);
 				settings->hashptr(pass, strlen(pass), curHash);
 				// TODO free pass
 			}
 			// TODO handle j = 0 case (ugly)
-			if (j == 0) pass = curPass;
+			if (j == 0) strncpy(pass, curPass, MAX_FIELD);
 
 			if (!memcmp(curHash, target, settings->hashed_password_len))
 				return pass;
@@ -162,6 +161,8 @@ int main(int argc, char** argv)
 			{
 				memcpy(hexbuf, hashbuf+1, strlen(hashbuf));
 				settings.hashptr(hexbuf, strlen(hexbuf), keybuf);
+				binary2hexa(keybuf, settings.hashed_password_len, hexbuf, sizeof(hexbuf));
+				printf("In hexa password is%s\n", hexbuf);
 			}
 			else
 			{

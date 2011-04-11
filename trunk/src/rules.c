@@ -99,14 +99,14 @@ passgencontext* createrule(char* rule, lexicon* lex, unsigned int* passgensize)
 	{
 		counter = 0;
 		current = retcontext->terms[t].term;
-		while(*current != NULL)
+		while(*current != '\0')
 		{
 			switch (*current)
 			{
 			case '*':
 			case '^':
 			case '%':
-				if (*(current + 1) == NULL)
+				if (*(current + 1) == '\0')
 				{
 					fprintf(stderr, "malformed expression\n");
 					return 0;
@@ -272,7 +272,7 @@ lexicon* preprocessLexicon(char* filename)
 	if ((f = fopen(filename, "rt")) == NULL)
 	{
 		perror(filename);
-		return 1;
+		return NULL;
 	}
 	/* TODO check return values! */
 	fseek(f, 0, SEEK_END);
@@ -324,10 +324,10 @@ lexicon* preprocessLexicon(char* filename)
 	return lex;
 }
 
-char* advanceCell(passcell* cell, lexicon* lex, unsigned long k)
+char* advanceCell(passcell* cell, lexicon* lex, unsigned long k, char* pass)
 {
 	unsigned long counter = 0, j = 0, len = 0;
-
+	char temp[MAX_FIELD + 1] = {0};
 	switch (cell->type)
 	{
 	case NUMBERS:
@@ -390,20 +390,18 @@ char* advanceCell(passcell* cell, lexicon* lex, unsigned long k)
 	default:
 		fprintf(stderr, "Unknown cell type %d\n", cell->type);
 	}
+	snprintf(temp, MAX_FIELD, "%s%s", cell->data, pass);
+	strncpy(pass, temp, MAX_FIELD);
 	return cell->data;
 }
 
 
-char* advanceBlock(passblock* block, lexicon* lex, unsigned long k)
+char* advanceBlock(passblock* block, lexicon* lex, unsigned long k, char* pass)
 {
 	unsigned long currentCellIndex = block->numOfCells - 1;
-	unsigned long retpasssize, partialsize;
-	char* retpass = NULL;
-	char* retpasstemp = NULL;
-	char* partialpass = NULL;
-	retpass = calloc(1, sizeof(char));
 	if (k == 0)
 #ifdef DEBUG
+		//strncat(pass, "$", MAX_FIELD);
 		return "$";
 #else
 		return "";
@@ -411,31 +409,19 @@ char* advanceBlock(passblock* block, lexicon* lex, unsigned long k)
 	while (k != 0)
 	{
 		k--;
-		partialpass = advanceCell(block->cells + currentCellIndex, lex,
-				k % block->cells[currentCellIndex].range);
-		partialsize = strlen(partialpass);
-		retpasssize = strlen(retpass);
-		retpasstemp = calloc(1, retpasssize + partialsize + 1);
-		memcpy(retpasstemp, partialpass, strlen(partialpass) + 1);
-		// TODO: check return values
-		strcat(retpasstemp, retpass);
-		free(retpass);
-		retpass = retpasstemp;
+		advanceCell(block->cells + currentCellIndex, lex,
+				k % block->cells[currentCellIndex].range, pass);
 		k = k / block->cells[currentCellIndex].range;
 		currentCellIndex--;
 	}
-	return retpass;
+	return pass;
 }
 
-char* generatePassword(passgencontext* passgenctx, lexicon* lex, unsigned long k)
+char* generatePassword(passgencontext* passgenctx, lexicon* lex, unsigned long k, char* pass)
 {
 	unsigned long currentTermIndex = 0;
 	unsigned long currentBlockIndex = 0;
-	unsigned long retpasssize, partialsize;
-	char* retpass = NULL;
-	char* retpasstemp = NULL;
-	char* partialpass = NULL;
-	retpass = calloc(1, sizeof(char));
+	memset(pass, 0, MAX_FIELD); /* zero password */
 	k %= passgenctx->numOfPasswords;
 
 	resetrule(passgenctx);
@@ -454,37 +440,30 @@ char* generatePassword(passgencontext* passgenctx, lexicon* lex, unsigned long k
 	while (k != 0)
 	{
 		// k--;
-		partialpass = advanceBlock(passgenctx->terms[currentTermIndex].blocks + currentBlockIndex, lex,
-				k % passgenctx->terms[currentTermIndex].blocks[currentBlockIndex].range);
-		partialsize = strlen(partialpass);
-		retpasssize = strlen(retpass);
-		retpasstemp = calloc(1, retpasssize + partialsize + 1);
-		memcpy(retpasstemp, partialpass, strlen(partialpass) + 1);
-		// TODO: check return values
-		strcat(retpasstemp, retpass);
-		free(retpass);
-		retpass = retpasstemp;
+		advanceBlock(passgenctx->terms[currentTermIndex].blocks + currentBlockIndex, lex,
+				k % passgenctx->terms[currentTermIndex].blocks[currentBlockIndex].range, pass);
 		k = k / passgenctx->terms[currentTermIndex].blocks[currentBlockIndex].range;
 		if (currentBlockIndex == 0)
 			break;
 		currentBlockIndex--;
 	}
-	return retpass;
+	return pass;
 }
 #define RULE 		"^1^1^1"
-#define CONST_K		121
+#define CONST_K		12
 
 
 #ifdef RULES_PREPROCESS
 int main(int argc, char** argv) {
 	unsigned long k = CONST_K;//1221-1;//123321 + 3;//10 + 26 + 4 + 28; //pow(52,0) + pow(52,1) + pow(52,2);
 	unsigned int passgensize = 0;
-	char* pass = NULL;
+	char pass[MAX_FIELD+1];
+	pass[0] = NULL;
 	lexicon* lex = preprocessLexicon("/home/a/workspace/Project/lexicon.txt");
 	char* rule = calloc(1, strlen(RULE));
 	memcpy(rule, RULE, strlen(RULE) + 1);
 	passgencontext* passgenctx = createrule(rule, lex, &passgensize);
-	pass = generatePassword(passgenctx, lex, k);
+	generatePassword(passgenctx, lex, k, pass);
 	printf("The %luth password (out of %lu) for %s is %s\n", CONST_K, passgenctx->numOfPasswords, RULE, pass);
 	freerule(passgenctx);
 	return 0;

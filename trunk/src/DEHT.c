@@ -22,7 +22,7 @@
 /* int nTableSize, i.e. Output is 0 to (nTableSize-1) to fit table of pointers*/
 int hashfun(const unsigned char *keyBuf, int keySizeof, int nTableSize)
 {
-	char* outbuf = calloc(1, MD5_OUTPUT_LENGTH_IN_BYTES);
+	unsigned char* outbuf = calloc(1, MD5_OUTPUT_LENGTH_IN_BYTES);
 	int retVal = 0;
 	MD5BasicHash(keyBuf, keySizeof, outbuf);
 	retVal = (*(int*)(outbuf)) & (nTableSize-1);
@@ -174,7 +174,7 @@ int add_DEHT ( DEHT *ht, const unsigned char *key, int keyLength,
 					if (sizeof(BLOCK_HEADER) != fwrite(&bheader, 1, sizeof(BLOCK_HEADER), ht->keyFP))
 					{
 						perror("Could not write DEHT new block header");
-						return NULL;
+						return DEHT_STATUS_FAIL;
 					}
 				}
 
@@ -185,7 +185,7 @@ int add_DEHT ( DEHT *ht, const unsigned char *key, int keyLength,
 				if (sizeof(BLOCK_HEADER) != fwrite(&bheader, 1, sizeof(BLOCK_HEADER), ht->keyFP))
 				{
 					perror("Could not write DEHT new block header");
-					return NULL;
+					return DEHT_STATUS_FAIL;
 				}
 #ifdef DEBUG
 	fflush(ht->keyFP);
@@ -193,7 +193,7 @@ int add_DEHT ( DEHT *ht, const unsigned char *key, int keyLength,
 				if (ht->header.nPairsPerBlock != fwrite(&block, sizeof(TRIPLE), ht->header.nPairsPerBlock, ht->keyFP))
 				{
 					perror("Could not write DEHT new block");
-					return NULL;
+					return DEHT_STATUS_FAIL;
 				}
 #ifdef DEBUG
 	fflush(ht->keyFP);
@@ -208,7 +208,7 @@ int add_DEHT ( DEHT *ht, const unsigned char *key, int keyLength,
 			if (dataLength != fwrite(data, 1, dataLength, ht->dataFP))
 			{
 				perror("Could not write DEHT new data");
-				return NULL;
+				return DEHT_STATUS_FAIL;
 			}
 #ifdef DEBUG
 	fflush(ht->dataFP);
@@ -223,7 +223,7 @@ int add_DEHT ( DEHT *ht, const unsigned char *key, int keyLength,
 			if (sizeof(triple) != fwrite(&triple, 1, sizeof(triple), ht->keyFP))
 			{
 				perror("Could not write DEHT new key");
-				return NULL;
+				return DEHT_STATUS_FAIL;
 			}
 #ifdef DEBUG
 	fflush(ht->keyFP);
