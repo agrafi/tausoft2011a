@@ -22,16 +22,14 @@ int main(int argc, char** argv)
 	unsigned int passgensize = 0;
 	unsigned long k = 0;
 	unsigned long numOfChains = 50;
-	char* pass, *origpass = NULL;
+	char origpass[MAX_FIELD + 1] = {0};
+	char pass[MAX_FIELD + 1] = {0};
 	unsigned long i = 0, j = 0;
 	unsigned long idx = 0;
-	unsigned long datalen, keylen;
 	unsigned long* seeds = NULL;;
 
-	char keybuf[SHA1_OUTPUT_LENGTH_IN_BYTES];
 	char hashbuf[2*SHA1_OUTPUT_LENGTH_IN_BYTES + 1];
 	char hexbuf[2*SHA1_OUTPUT_LENGTH_IN_BYTES + 1];
-	char databuf[MAX_INPUT];
 
 	if (argc != 2)
 	{
@@ -70,7 +68,8 @@ int main(int argc, char** argv)
 	// Generate seeds
 	seeds = calloc(settings.ChainLength, sizeof(seeds));
 	/* initialize random generator */
-	srandom(pseudo_random_function(settings.MainRandSeed, strlen(settings.MainRandSeed), 0));
+	srandom((const unsigned int)pseudo_random_function((const unsigned char*)settings.MainRandSeed,
+			strlen(settings.MainRandSeed), 0));
 	for(i = 0; i < settings.ChainLength - 1; i++)
 	{
 		seeds[i] = random();
@@ -81,30 +80,29 @@ int main(int argc, char** argv)
 	for(i = 0; i < numOfChains; i++)
 	{
 		idx = random() % (passgenctx->numOfPasswords - 1) + 1;
-		origpass = pass = generatePassword(passgenctx, lex, idx);
-		settings.hashptr(pass, strlen(pass), hashbuf);
+		generatePassword(passgenctx, lex, idx, pass);
+		strncpy(origpass, pass, MAX_FIELD);
+		settings.hashptr((const unsigned char*)pass, strlen(pass), (unsigned char*)hashbuf);
 #ifdef DEBUG
-			binary2hexa(hashbuf, settings.hashed_password_len, hexbuf, sizeof(hexbuf));
-			printf("\t%s \t%s\n", pass, hexbuf);
+			//binary2hexa(hashbuf, settings.hashed_password_len, hexbuf, sizeof(hexbuf));
+			//printf("\t%s \t%s\n", pass, hexbuf);
 #endif
 		for (j = 0; j <settings.ChainLength - 1; j++)
 		{
-			if ((i == 3174) && j == 62)
-				printf("Blat\n");
-			k = pseudo_random_function(hashbuf, settings.hashed_password_len, seeds[j]);
-			pass = generatePassword(passgenctx, lex, k);
-			settings.hashptr(pass, strlen(pass), hashbuf);
-			// free(pass);
+			k = pseudo_random_function((const unsigned char*)hashbuf, settings.hashed_password_len, seeds[j]);
+			generatePassword(passgenctx, lex, k, pass);
+			settings.hashptr((unsigned char*)pass, strlen(pass), (unsigned char*)hashbuf);
 #ifdef DEBUG
-			binary2hexa(hashbuf, settings.hashed_password_len, hexbuf, sizeof(hexbuf));
+			binary2hexa((unsigned char*)hashbuf, settings.hashed_password_len, hexbuf, sizeof(hexbuf));
 			// printf("\t%s \t%s\n", pass, hexbuf);
 #endif
 		}
 #ifdef DEBUG
-		binary2hexa(hashbuf, settings.hashed_password_len, hexbuf, sizeof(hexbuf));
-		printf("The %d chain for %s is \t%s : \t%s\n", i, settings.Rule, origpass, hexbuf);
+		binary2hexa((unsigned char*)hashbuf, settings.hashed_password_len, hexbuf, sizeof(hexbuf));
+		printf("%2.1f%%: The %lu/%lu chain for %s is \t%s : \t%s\n", 100*((float)i/(float)numOfChains),
+				i, numOfChains,	settings.Rule, origpass, hexbuf);
 #endif
-		add_DEHT(deht, hashbuf, settings.hashed_password_len, origpass, strlen(origpass));
+		add_DEHT(deht, (unsigned char*)hashbuf, settings.hashed_password_len, (unsigned char*)origpass, strlen(origpass));
 	}
 
 	lock_DEHT_files(deht);

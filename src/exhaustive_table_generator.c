@@ -267,7 +267,7 @@ int main(int argc, char** argv)
 	unsigned int passgensize = 0;
 	unsigned long k = 0;
 	unsigned long numOfPasswords = 0;
-	char* pass = NULL;
+	char pass[MAX_FIELD] = { 0 };
 	unsigned long i = 0;
 	unsigned long idx = 0;
 	unsigned long datalen, keylen;
@@ -327,7 +327,7 @@ int main(int argc, char** argv)
 	for(i = 0; i < numOfPasswords; i++)
 	{
 		idx = (k == 0 ? i + 1: random() % (passgenctx->numOfPasswords - 1) + 1);
-		pass = generatePassword(passgenctx, lex, idx);
+		generatePassword(passgenctx, lex, idx, pass);
 		hashptr(pass, strlen(pass), hashbuf);
 		// keylen = hexa2binary(hashbuf, keybuf, SHA1_OUTPUT_LENGTH_IN_BYTES);
 #ifdef DEBUG

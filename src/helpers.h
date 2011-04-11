@@ -3,14 +3,15 @@
 
 #include "misc.h"
 #include "stdio.h"
+#include <stdlib.h>
 
 // #define CREATE_AUTHENTICATION
 // #define AUTHENTICATE
 // #define RULES_PREPROCESS
 // #define EXHAUSTIVE_TABLE_GENERATOR
 //#define EXHAUSTIVE_QUERY
-// #define CREATE_RAINBOW_TABLE
-#define CRACK_USING_RAINBOW_TABLE
+#define CREATE_RAINBOW_TABLE
+//#define CRACK_USING_RAINBOW_TABLE
 
 #define MD5_OUTPUT_LENGTH_IN_BYTES    16
 #define SHA1_OUTPUT_LENGTH_IN_BYTES   20

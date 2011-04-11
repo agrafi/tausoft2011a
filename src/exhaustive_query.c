@@ -15,7 +15,6 @@
 int readHashFromUser(char* hashedpass)
 {
 	char* buffer = NULL;
-	char* position = NULL;
 
 	buffer = (char*)calloc(1, MAX_INPUT*sizeof(char));
 	assert(buffer != NULL);

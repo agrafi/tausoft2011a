@@ -23,7 +23,7 @@ LONG_INDEX_PROJ pseudo_random_function(const unsigned char *x,int inputLength,LO
 
 int cryptHash ( BasicHashFunctionPtr cryptHashPtr, const char *passwd, unsigned char *outBuf )
 {
-	return cryptHashPtr ( passwd, strlen(passwd) , outBuf) ;
+	return cryptHashPtr ( (const unsigned char*)passwd, strlen(passwd) , outBuf) ;
 }
 
 int MD5BasicHash ( const unsigned char *in,int len, unsigned char *outBuf)
@@ -82,7 +82,7 @@ const unsigned char nibble_to_hex[] = {'0', '1', '2', '3', '4', '5', '6', '7', '
 
 int binary2hexa(const unsigned char *bufIn, int lengthIn, char *outStr, int outMaxLen){
         int i;
-        unsigned char *c = bufIn;
+        const unsigned char *c = bufIn;
         char *o = outStr;
         for (i = 0; i < lengthIn; i++) {
                 if ((2*i+2) >= outMaxLen)

@@ -58,14 +58,14 @@ int readLineFromUser(record* newuser)
 			return CMD_CONTINUE;
 		}
 		*position = '\0';
-		strncpy(&(newuser->username), buffer, position - buffer);
-		strncpy(&(newuser->password), position+1, strlen(position+1)-1);
+		strncpy((char*)&(newuser->username), buffer, position - buffer);
+		strncpy((char*)&(newuser->password), position+1, strlen(position+1)-1);
 
 #ifdef DEBUG
-		printf("user: %s pass: %s\n", newuser->username, &(newuser->password));
+		printf("user: %s pass: %s\n", newuser->username, (char*)&(newuser->password));
 #endif
-		memset((const unsigned char*)&(newuser->hashed_password), 0, sizeof(newuser->hashed_password));
-		newuser->hashptr((char*)&(newuser->password), strlen(newuser->password), (char*) &(newuser->hashed_password));
+		memset((void*)&(newuser->hashed_password), 0, sizeof(newuser->hashed_password));
+		newuser->hashptr((unsigned char*)&(newuser->password), strlen(newuser->password), (unsigned char*) &(newuser->hashed_password));
 #ifdef DEBUG
 		printHash(newuser, stdout); printf("\n");
 #endif
