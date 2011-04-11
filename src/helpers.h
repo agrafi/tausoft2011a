@@ -10,8 +10,8 @@
 // #define RULES_PREPROCESS
 // #define EXHAUSTIVE_TABLE_GENERATOR
 //#define EXHAUSTIVE_QUERY
-#define CREATE_RAINBOW_TABLE
-//#define CRACK_USING_RAINBOW_TABLE
+//#define CREATE_RAINBOW_TABLE
+#define CRACK_USING_RAINBOW_TABLE
 
 #define MD5_OUTPUT_LENGTH_IN_BYTES    16
 #define SHA1_OUTPUT_LENGTH_IN_BYTES   20
@@ -70,5 +70,6 @@ void printHash(record* r, FILE* file);
 int fileexists(char* filename);
 int numOfLines(char* filename);
 int readLineFromUser(record* newuser);
+int readHashFromUser(char* hashedpass);
 int parseSettings(rainbow_settings* settings, char* inipath);
 #endif

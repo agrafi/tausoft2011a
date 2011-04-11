@@ -42,14 +42,13 @@ chain, in other-words, not in our Rainbow-Table.
  */
 
 char* queryRainbowTable(DEHT* deht, unsigned char* target, rainbow_settings* settings, unsigned long* seeds,
-		passgencontext* passgenctx, lexicon* lex)
+		passgencontext* passgenctx, lexicon* lex, char* pass)
 {
 	long j = 0;
 	unsigned long i = 0, k = 0, n = 0, h = 0;
 	char curHash[SHA1_OUTPUT_LENGTH_IN_BYTES];
 	char tryThisPassword[MAX_MATCHED_PASSWORDS * MAX_FIELD];
 	char* dataPointers[MAX_MATCHED_PASSWORDS + 1]; // reserve extra slot
-	char pass[MAX_FIELD + 1] = {0};
 	char curPass[MAX_FIELD + 1] = {0};
 
 	//Gamble that our password is in location "j" in some chain as follow:
@@ -62,15 +61,15 @@ char* queryRainbowTable(DEHT* deht, unsigned char* target, rainbow_settings* set
 		// go down the chain (chain_length-j ) steps (till curHash = end-point hash).
 		for (i = j; i < settings->ChainLength - 1; i++)
 		{
-			k = pseudo_random_function(curHash, settings->hashed_password_len, seeds[i]);
+			k = pseudo_random_function((const unsigned char*)curHash, settings->hashed_password_len, seeds[i]);
 			generatePassword(passgenctx, lex, k, pass);
-			settings->hashptr(pass, strlen(pass), curHash);
-			// TODO free pass
+			settings->hashptr((const unsigned char*)pass, strlen(pass), (unsigned char*)curHash);
 		}
 		// Multi-query in disk-embedded hash table with key: curHash.
 		// Get data (passwords set) to array: tryThisPassword[0..n]
-		n = mult_query_DEHT(deht, curHash, settings->hashed_password_len, tryThisPassword,
-				MAX_MATCHED_PASSWORDS * MAX_FIELD, dataPointers, MAX_MATCHED_PASSWORDS);
+		n = mult_query_DEHT(deht, (unsigned char*)curHash, settings->hashed_password_len,
+				(unsigned char*)tryThisPassword, MAX_MATCHED_PASSWORDS * MAX_FIELD,
+				(unsigned char**)dataPointers, MAX_MATCHED_PASSWORDS);
 
 		// if n=0 (no password is found), we guessed wrong j, continue loop other j.
 		if (n == 0)
@@ -81,12 +80,12 @@ char* queryRainbowTable(DEHT* deht, unsigned char* target, rainbow_settings* set
 			// set curPass to tryThisPassword[h]
 			memset(curPass, 0, MAX_FIELD);
 			memcpy(curPass, dataPointers[h], dataPointers[h+1] - dataPointers[h]);
-			settings->hashptr(curPass, strlen(curPass), curHash);
+			settings->hashptr((unsigned char*)curPass, strlen(curPass), (unsigned char*)curHash);
 			for (i = 0; i < j; i++)
 			{
-				k = pseudo_random_function(curHash, settings->hashed_password_len, seeds[i]);
+				k = pseudo_random_function((unsigned char*)curHash, settings->hashed_password_len, seeds[i]);
 				generatePassword(passgenctx, lex, k, pass);
-				settings->hashptr(pass, strlen(pass), curHash);
+				settings->hashptr((unsigned char*)pass, strlen(pass), (unsigned char*)curHash);
 				// TODO free pass
 			}
 			// TODO handle j = 0 case (ugly)
@@ -97,6 +96,7 @@ char* queryRainbowTable(DEHT* deht, unsigned char* target, rainbow_settings* set
 		}
 
 	}
+	pass[0] = '\0';
 	return NULL;
 }
 
@@ -107,20 +107,18 @@ int main(int argc, char** argv)
 	DEHT* deht = NULL;
 	passgencontext* passgenctx = NULL;
 	unsigned int passgensize = 0;
-	unsigned long k = 0;
-	unsigned long numOfChains = 10;
-	char* pass, *origpass = NULL;
-	unsigned long i = 0, j = 0;
-	unsigned long idx = 0;
-	unsigned long datalen, keylen;
+	char pass[MAX_FIELD+1] = {0};
+	unsigned long keylen;
 	unsigned long* seeds = NULL;;
 	char cmd = CMD_CONTINUE;
 	char quit = 0;
 
-	char keybuf[SHA1_OUTPUT_LENGTH_IN_BYTES];
+	unsigned char keybuf[SHA1_OUTPUT_LENGTH_IN_BYTES];
 	char hashbuf[2*SHA1_OUTPUT_LENGTH_IN_BYTES + 1];
 	char hexbuf[2*SHA1_OUTPUT_LENGTH_IN_BYTES + 1];
 	char databuf[MAX_INPUT];
+
+	memset(&hexbuf, 0, sizeof(hexbuf));
 
 	if (argc != 2)
 	{
@@ -159,9 +157,9 @@ int main(int argc, char** argv)
 		case CMD_VALID:
 			if (hashbuf[0] == '!')
 			{
-				memcpy(hexbuf, hashbuf+1, strlen(hashbuf));
-				settings.hashptr(hexbuf, strlen(hexbuf), keybuf);
-				binary2hexa(keybuf, settings.hashed_password_len, hexbuf, sizeof(hexbuf));
+				memcpy(hexbuf, hashbuf+1, strlen(hashbuf)-1);
+				settings.hashptr((unsigned char*)hexbuf, strlen(hexbuf), (unsigned char*)keybuf);
+				binary2hexa((unsigned char*)keybuf, settings.hashed_password_len, hexbuf, sizeof(hexbuf));
 				printf("In hexa password is%s\n", hexbuf);
 			}
 			else
@@ -172,10 +170,10 @@ int main(int argc, char** argv)
 					fprintf(stderr, "Error: Wrong hash size \n");
 					break;
 				}
-				keylen = hexa2binary(hashbuf, keybuf, sizeof(keybuf));
+				keylen = hexa2binary(hashbuf, (unsigned char*)keybuf, sizeof(keybuf));
 			}
-			pass = queryRainbowTable(deht, keybuf, &settings, seeds, passgenctx, lex);
-			if (pass)
+			queryRainbowTable(deht, (unsigned char*)keybuf, &settings, seeds, passgenctx, lex, pass);
+			if (strlen(pass) != 0)
 				printf("Try to login with password \"%s\"\n", pass);
 			else
 				printf("Sorry but this hash doesn't appear in pre-processing\n");
@@ -184,7 +182,8 @@ int main(int argc, char** argv)
 	}
 
 	freerule(passgenctx);
-	// TODO freelex
+	freelex(lex);
+	lock_DEHT_files(deht);
 	free(seeds);
 	return EXIT_SUCCESS;
 }
