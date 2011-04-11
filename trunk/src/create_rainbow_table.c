@@ -77,6 +77,7 @@ int main(int argc, char** argv)
 	write_DEHT_Seed(deht, seeds, settings.ChainLength - 1);
 
 	numOfChains = 10 * (passgenctx->numOfPasswords / settings.ChainLength);
+	if (numOfChains == 0) numOfChains = 1;
 	for(i = 0; i < numOfChains; i++)
 	{
 		idx = random() % (passgenctx->numOfPasswords - 1) + 1;
@@ -106,9 +107,9 @@ int main(int argc, char** argv)
 	}
 
 	lock_DEHT_files(deht);
-	// freerule(passgenctx);
+	freerule(passgenctx);
+	freelex(lex);
 	free(seeds);
-	// TODO freelex
 	printf("Done.\n");
 	return EXIT_SUCCESS;
 }

@@ -21,13 +21,11 @@ enum CELLTYPE {
 
 typedef struct passcell_struct {
 	enum CELLTYPE type;
-	char* data;
 	unsigned long range;
 } passcell;
 
 typedef struct passblock_struct {
 	enum CELLTYPE type;
-	char* data;
 	unsigned long range;
 	unsigned long numOfCells;
 	passcell* cells;
@@ -55,6 +53,7 @@ typedef struct lexword_struct {
 	unsigned long numOfLettersPermutaionsInWord;
 } lexword;
 typedef struct lexicon_struct {
+	char* buffer;
 	unsigned long numOfWordsInLexicon;
 	unsigned long numOfLettersInLexicon;
 	unsigned long sumOfWordsPermutationsInLexicon;
@@ -64,4 +63,6 @@ typedef struct lexicon_struct {
 char* generatePassword(passgencontext* passgenctx, lexicon* lex, unsigned long k, char* pass);
 lexicon* preprocessLexicon(char* filename);
 passgencontext* createrule(char* rule, lexicon* lex, unsigned int* passgensize);
+void freelex(lexicon* lex);
+void freerule(passgencontext* ctx);
 #endif /* RULES_H_ */
