@@ -144,8 +144,9 @@ int main(int argc, char** argv)
 
 	while (!quit)
 	{
-		memset(&hashbuf, 0, sizeof(hashbuf));
-		memset(&databuf, 0, sizeof(databuf));
+		memset(&hashbuf, 0, 2*SHA1_OUTPUT_LENGTH_IN_BYTES + 1);
+		memset(&databuf, 0, MAX_INPUT);
+		memset(&hexbuf, 0, 2*SHA1_OUTPUT_LENGTH_IN_BYTES + 1);
 		cmd = readHashFromUser(hashbuf);
 		switch(cmd)
 		{

@@ -51,14 +51,14 @@ int main(int argc, char** argv)
 {
 	DEHT* deht = NULL;
 	char* prefix = argv[1];
-	unsigned int passgensize = 0;
-	unsigned long k = 0;
-	unsigned long numOfPasswords = 0;
-	char* pass = NULL;
-	unsigned long i = 0;
+	/*unsigned int passgensize = 0;*/
+	/*unsigned long k = 0;*/
+	/*unsigned long numOfPasswords = 0;*/
+	/*char* pass = NULL;*/
+	/*unsigned long i = 0; */
 	int quit = 0, cmd = CMD_CONTINUE;
-	unsigned long datalen, keylen;
-
+	unsigned long keylen;
+	/*unsigned long datalen;*/
 	int hashed_password_len = 0;
 
 	char keybuf[SHA1_OUTPUT_LENGTH_IN_BYTES];
@@ -112,8 +112,8 @@ int main(int argc, char** argv)
 				break;
 			}
 
-			keylen = hexa2binary(hashbuf, keybuf, sizeof(keybuf));
-			if (query_DEHT(deht, keybuf, keylen, databuf, sizeof(databuf)))
+			keylen = hexa2binary(hashbuf,(unsigned char*)keybuf, sizeof(keybuf));
+			if (query_DEHT(deht,(unsigned char*)keybuf, keylen,(unsigned char*)databuf, sizeof(databuf)))
 				printf("Try to login with password \"%s\"\n", databuf);
 			else
 				printf("Sorry but this hash doesn't appear in pre-processing\n");
@@ -126,8 +126,8 @@ int main(int argc, char** argv)
 
 
 	lock_DEHT_files(deht);
-	free(keybuf);
-	free(databuf);
+	//free(keybuf);
+	//free(databuf);
 	return 0;
 
 
