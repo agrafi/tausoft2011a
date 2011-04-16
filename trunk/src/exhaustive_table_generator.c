@@ -276,9 +276,12 @@ int main(int argc, char** argv)
 	BasicHashFunctionPtr hashptr;
 	int hashed_password_len = 0;
 
-	char* keybuf = calloc(1, SHA1_OUTPUT_LENGTH_IN_BYTES);
-	char* hashbuf = calloc(1, 2*SHA1_OUTPUT_LENGTH_IN_BYTES + 1);
-	char* databuf = calloc(1, MAX_INPUT);
+	//char* keybuf = calloc(1, SHA1_OUTPUT_LENGTH_IN_BYTES);
+	char keybuf[SHA1_OUTPUT_LENGTH_IN_BYTES];
+	//char* hashbuf = calloc(1, 2*SHA1_OUTPUT_LENGTH_IN_BYTES + 1);
+	char hashbuf[2*SHA1_OUTPUT_LENGTH_IN_BYTES + 1];
+	//char* databuf = calloc(1, MAX_INPUT);
+	char databuf[MAX_INPUT];
 
 	/* initialize random generator */
 	srandom(time(NULL));
@@ -339,8 +342,8 @@ int main(int argc, char** argv)
 
 	lock_DEHT_files(deht);
 	freerule(passgenctx);
-	free(keybuf);
-	free(databuf);
+	//free(keybuf);
+	//free(databuf);
 	return EXIT_SUCCESS;
 }
 #endif
