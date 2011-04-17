@@ -13,6 +13,8 @@
 
 #define MAX_MATCHED_PASSWORDS 10
 
+#define NUM_PASS_TO_CHECK 1000
+
 #ifdef CRACK_USING_RAINBOW_TABLE
 /*
  * For j = chain_length to 1 do
@@ -112,10 +114,11 @@ int main(int argc, char** argv)
 	unsigned long* seeds = NULL;;
 	char cmd = CMD_CONTINUE;
 	char quit = 0;
+	unsigned long i=1, succeeded=0, z=0;
 
 	unsigned char keybuf[SHA1_OUTPUT_LENGTH_IN_BYTES];
-	char hashbuf[2*SHA1_OUTPUT_LENGTH_IN_BYTES + 1];
-	char hexbuf[2*SHA1_OUTPUT_LENGTH_IN_BYTES + 1];
+	char hashbuf[MAX_FIELD+1], hashbuf2[MAX_FIELD+1];
+	char hexbuf[MAX_FIELD+1];
 	char databuf[MAX_INPUT];
 
 	memset(&hexbuf, 0, sizeof(hexbuf));
@@ -144,10 +147,31 @@ int main(int argc, char** argv)
 
 	while (!quit)
 	{
-		memset(&hashbuf, 0, 2*SHA1_OUTPUT_LENGTH_IN_BYTES + 1);
+		memset(hashbuf, 0, MAX_FIELD);
 		memset(&databuf, 0, MAX_INPUT);
-		memset(&hexbuf, 0, 2*SHA1_OUTPUT_LENGTH_IN_BYTES + 1);
+		memset(&hexbuf, 0, MAX_FIELD);
+
+#ifdef DEBUG
+		memset(hashbuf2, 0, 2*SHA1_OUTPUT_LENGTH_IN_BYTES + 1);
+		cmd = CMD_VALID;
+		if(i <= NUM_PASS_TO_CHECK)
+		{
+			z = rand() % passgenctx->numOfPasswords;
+			memcpy(hashbuf2,"!",sizeof("!"));
+			generatePassword(passgenctx, lex, z, hashbuf);
+			strcat(hashbuf2,hashbuf);
+			memcpy(hashbuf,hashbuf2,sizeof(hashbuf2));
+			i++;
+		}
+		else
+		{
+			quit = 1;
+			continue;
+		}
+#else
 		cmd = readHashFromUser(hashbuf);
+#endif
+
 		switch(cmd)
 		{
 		case CMD_QUIT:
@@ -175,12 +199,19 @@ int main(int argc, char** argv)
 			}
 			queryRainbowTable(deht, (unsigned char*)keybuf, &settings, seeds, passgenctx, lex, pass);
 			if (strlen(pass) != 0)
+			{
 				printf("Try to login with password \"%s\"\n", pass);
+				succeeded++;
+			}
 			else
 				printf("Sorry but this hash doesn't appear in pre-processing\n");
 			break;
 		}
 	}
+
+#ifdef DEBUG
+	printf("\nYou succeeded %d passes out of %d which is %3.2f %%\n",succeeded,NUM_PASS_TO_CHECK,((float)succeeded/NUM_PASS_TO_CHECK)*100);
+#endif
 
 	freerule(passgenctx);
 	freelex(lex);
