@@ -13,16 +13,21 @@
 
 void freerule(passgencontext* ctx)
 {
+	if (!ctx)
+		return;
 	int i = 0, j = 0;
 	for (i = 0; i < ctx->numOfTerms; i++)
 	{
 		for (j = 0; j < ctx->terms[i].numOfBlocks; j++)
 		{
-			free(ctx->terms[i].blocks[j].cells);
+			if (ctx->terms[i].blocks[j].cells)
+				free(ctx->terms[i].blocks[j].cells);
 		}
-		free(ctx->terms[i].blocks);
+		if (ctx->terms[i].blocks)
+			free(ctx->terms[i].blocks);
 	}
-	free(ctx->terms);
+	if (ctx->terms)
+		free(ctx->terms);
 	free(ctx);
 	return;
 }
@@ -33,6 +38,11 @@ passgencontext* createrule(char* rule, lexicon* lex, unsigned int* passgensize)
 	int i = 0, counter = 0, j = 0, t = 0;
 	passblock* passgen = NULL;
 	passgencontext* retcontext = calloc(1, sizeof(passgencontext));
+	if (!retcontext)
+	{
+		return NULL;
+	}
+
 	retcontext->numOfTerms = 1;
 	memcpy(retcontext->rule, rule, strlen(rule) + 1);
 	char* expression = retcontext->rule;
@@ -48,6 +58,11 @@ passgencontext* createrule(char* rule, lexicon* lex, unsigned int* passgensize)
 	}
 
 	retcontext->terms = calloc(retcontext->numOfTerms, sizeof(passterm));
+	if (!retcontext->terms)
+	{
+		freerule(retcontext);
+		return NULL;
+	}
 	retcontext->terms[0].term = expression;
 	for (i=0; i<strlen(expression) && counter < retcontext->numOfTerms - 1; i++)
 	{
@@ -72,8 +87,10 @@ passgencontext* createrule(char* rule, lexicon* lex, unsigned int* passgensize)
 			case '%':
 				if (*(current + 1) == '\0')
 				{
+					/// TODO: format message
 					fprintf(stderr, "malformed expression\n");
-					return 0;
+					freerule(retcontext);
+					return NULL;
 				}
 				counter++; //= atoi(current+1);
 				current++;
@@ -91,6 +108,11 @@ passgencontext* createrule(char* rule, lexicon* lex, unsigned int* passgensize)
 		}
 		/* allocate and init passblock array */
 		passgen = calloc(counter,sizeof(passblock));
+		if (!passgen)
+		{
+			freerule(retcontext);
+			return NULL;
+		}
 		/* configure every passblock item according to expression */
 		current = retcontext->terms[t].term;
 		i = 0;
@@ -102,6 +124,11 @@ passgencontext* createrule(char* rule, lexicon* lex, unsigned int* passgensize)
 				passgen[i].type = LETTERS;
 				passgen[i].numOfCells = atoi(current+1);
 				passgen[i].cells = calloc(passgen[i].numOfCells, sizeof(passcell));
+				if (!passgen[i].cells)
+				{
+					freerule(retcontext);
+					return NULL;
+				}
 				for(j=0; j<passgen[i].numOfCells; j++)
 				{
 					passgen[i].cells[j].type = LETTERS;
@@ -114,6 +141,11 @@ passgencontext* createrule(char* rule, lexicon* lex, unsigned int* passgensize)
 				passgen[i].type = NUMBERS;
 				passgen[i].numOfCells = atoi(current+1);
 				passgen[i].cells = calloc(passgen[i].numOfCells, sizeof(passcell));
+				if (!passgen[i].cells)
+				{
+					freerule(retcontext);
+					return NULL;
+				}
 				for(j=0; j<passgen[i].numOfCells; j++)
 				{
 					passgen[i].cells[j].type = NUMBERS;
@@ -126,6 +158,11 @@ passgencontext* createrule(char* rule, lexicon* lex, unsigned int* passgensize)
 				passgen[i].type = ALPHANUMERIC;
 				passgen[i].numOfCells = atoi(current+1);
 				passgen[i].cells = calloc(passgen[i].numOfCells, sizeof(passcell));
+				if (!passgen[i].cells)
+				{
+					freerule(retcontext);
+					return NULL;
+				}
 				for(j=0; j<passgen[i].numOfCells; j++)
 				{
 					passgen[i].cells[j].type = ALPHANUMERIC;
@@ -138,6 +175,11 @@ passgencontext* createrule(char* rule, lexicon* lex, unsigned int* passgensize)
 				passgen[i].type = CHARACTER;
 				passgen[i].numOfCells = 1;
 				passgen[i].cells = calloc(passgen[i].numOfCells, sizeof(passcell));
+				if (!passgen[i].cells)
+				{
+					freerule(retcontext);
+					return NULL;
+				}
 				for(j=0; j<passgen[i].numOfCells; j++)
 				{
 					passgen[i].cells[j].type = CHARACTER;
@@ -149,6 +191,11 @@ passgencontext* createrule(char* rule, lexicon* lex, unsigned int* passgensize)
 				passgen[i].type = LEXCS;
 				passgen[i].numOfCells = 1;
 				passgen[i].cells = calloc(passgen[i].numOfCells, sizeof(passcell));
+				if (!passgen[i].cells)
+				{
+					freerule(retcontext);
+					return NULL;
+				}
 				for(j=0; j<passgen[i].numOfCells; j++)
 				{
 					passgen[i].cells[j].type = LEXCS;
@@ -160,6 +207,11 @@ passgencontext* createrule(char* rule, lexicon* lex, unsigned int* passgensize)
 				passgen[i].type = LEX;
 				passgen[i].numOfCells = 1;
 				passgen[i].cells = calloc(passgen[i].numOfCells, sizeof(passcell));
+				if (!passgen[i].cells)
+				{
+					freerule(retcontext);
+					return NULL;
+				}
 				for(j=0; j<passgen[i].numOfCells; j++)
 				{
 					passgen[i].cells[j].type = LEX;
@@ -217,14 +269,23 @@ void freelex(lexicon* lex)
 {
 	int i = 0;
 
-	for (i=0; i < lex->numOfWordsInLexicon; i++)
+	if (!lex)
+		return;
+	if (lex->words)
 	{
-		free(lex->words[i].wordlower);
-		free(lex->words[i].playground);
-		lex->words[i].wordlower = lex->words[i].playground = NULL;
+		for (i=0; i < lex->numOfWordsInLexicon; i++)
+		{
+			if (lex->words[i].wordlower)
+				free(lex->words[i].wordlower);
+			if (lex->words[i].playground)
+				free(lex->words[i].playground);
+			lex->words[i].wordlower = lex->words[i].playground = NULL;
+		}
+		free(lex->words);
 	}
-	free(lex->words);
-	free(lex->buffer);
+
+	if (lex->buffer)
+		free(lex->buffer);
 	free(lex);
 	return;
 }
@@ -236,17 +297,43 @@ lexicon* preprocessLexicon(char* filename)
 	int counter = 0;
 	int i = 0, j = 0;
 	lexicon* lex = calloc(1, sizeof(lexicon));
+	if (!lex)
+	{
+		freelex(lex);
+		return NULL;
+	}
 	if ((f = fopen(filename, "rt")) == NULL)
 	{
-		perror(filename);
+		freelex(lex);
 		return NULL;
 	}
 	/* TODO check return values! */
-	fseek(f, 0, SEEK_END);
+	if (0 != fseek(f, 0, SEEK_END))
+	{
+		perror("Could not seek lexicon file");
+		freelex(lex);
+		return NULL;
+	}
 	buffersize = ftell(f) + 1; /* room for additional \n */
+	if (buffersize == 0) // == ftell=-1 which means error
+	{
+		freelex(lex);
+		return NULL;
+	}
 	lex->buffer = calloc(1, buffersize);
-	rewind(f);
-	fread(lex->buffer, buffersize, 1, f);
+	if (!lex->buffer)
+	{
+		freelex(lex);
+		return NULL;
+	}
+
+	rewind(f); // returns void
+	if (buffersize != fread(lex->buffer, 1, buffersize, f))
+	{
+		freelex(lex);
+		return NULL;
+	}
+
 	for (i=0; i<buffersize; i++)
 	{
 		if(isalpha(lex->buffer[i]))
@@ -264,6 +351,11 @@ lexicon* preprocessLexicon(char* filename)
 	}
 
 	lex->words = calloc(lex->numOfWordsInLexicon, sizeof(lexword));
+	if (!lex->words)
+	{
+		freelex(lex);
+		return NULL;
+	}
 	lex->words[0].word = lex->buffer;
 	for (i=0; i<buffersize && counter < lex->numOfWordsInLexicon; i++)
 	{
@@ -272,8 +364,17 @@ lexicon* preprocessLexicon(char* filename)
 			lex->buffer[i] = '\0';
 			lex->words[counter].len = strlen(lex->words[counter].word);
 			lex->words[counter].wordlower = calloc(1, lex->words[counter].len);
+			if (!lex->words[counter].wordlower)
+			{
+				freelex(lex);
+				return NULL;
+			}
 			lex->words[counter].playground = calloc(1, lex->words[counter].len);
-
+			if (!lex->words[counter].playground)
+			{
+				freelex(lex);
+				return NULL;
+			}
 			for(j = 0; j < lex->words[counter].len; j++)
 			{
 				lex->words[counter].wordlower[j] = tolower(lex->words[counter].word[j]);
@@ -357,6 +458,7 @@ void advanceCell(passcell* cell, lexicon* lex, unsigned long k, char* pass)
 		strncpy(celldata, lex->words[k].word, MAX_FIELD);
 		break;
 	default:
+		/// TODO: format error string
 		fprintf(stderr, "Unknown cell type %d\n", cell->type);
 	}
 	snprintf(temp, MAX_FIELD, "%s%s", celldata, pass);
