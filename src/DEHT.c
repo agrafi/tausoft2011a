@@ -5,6 +5,8 @@
  *      Author: a
  */
 
+#include <stdlib.h>
+#include <stdio.h>
 #include "DEHT.h"
 #include "helpers.h"
 
@@ -86,6 +88,8 @@ DEHT *create_empty_DEHT(const char *prefix,/*add .key and .data to open two file
                         int numEntriesInHashTable, int nPairsPerBlock, int nBytesPerKey) /*optimization preferences*/
 {
 	DEHT* d = calloc(1, sizeof(DEHT));
+	int written = 0;
+
 	if (!d)
 		return NULL;
 
@@ -158,7 +162,6 @@ DEHT *create_empty_DEHT(const char *prefix,/*add .key and .data to open two file
 		return NULL;
 	}
 
-	int written = 0;
 	if (sizeof(d->header) != (written = fwrite(&(d->header), 1, sizeof(d->header), d->keyFP)))
 	{
 		perror("Could not write DEHT header");
