@@ -29,7 +29,9 @@ int main(int argc, char** argv)
 	unsigned long* seeds = NULL;;
 
 	char hashbuf[2*SHA1_OUTPUT_LENGTH_IN_BYTES + 1];
+#ifdef DEBUG
 	char hexbuf[2*SHA1_OUTPUT_LENGTH_IN_BYTES + 1];
+#endif
 
 	if (argc != 2)
 	{
@@ -42,39 +44,47 @@ int main(int argc, char** argv)
 		return 2;
 
 	lex = preprocessLexicon(settings.LexiconName);
+	if (!lex)
+		return 2;
+
 	passgenctx = createrule(settings.Rule, lex, &passgensize);
+	if (!passgenctx)
+	{
+		freelex(lex);
+		return 2;
+	}
+
 
 	deht = create_empty_DEHT(settings.OutputFilePrefix, hashfun, validfun,
 			settings.HashFunction, settings.NumOfHashEnries, settings.ElementsInBucket, 8);
 	if (!deht)
 		return 1;
 
-	/*
-	To build the rainbow table we iterate many times (about 10 times size of S/chain length.)
-		Generate a random password within S:(e.g. aadquy). Name it firstPass.
-		Init curHash := MD5(firstPass)
-		For j=1 to chain-length do
-			k = pseudo-random-function with seed seed[j] and input curHash;
-			*
-			NewPassword = get_kth_password (k,S)
-			curHash = MD5(NewPassword);
-		end
-		Reduction
-		Insert into disk embedded hash table the following pair: key=curHash, data=firstPass
-	end
-	*/
-
 
 	// Generate seeds
 	seeds = calloc(settings.ChainLength, sizeof(seeds));
-	/* initialize random generator */
+	if (!seeds)
+	{
+		freelex(lex);
+		freerule(passgenctx);
+		lock_DEHT_files(deht);
+		return 1;
+	}
+	/* initialize random generator and create n seeds based on settings file seed */
 	srandom((const unsigned int)pseudo_random_function((const unsigned char*)settings.MainRandSeed,
 			strlen(settings.MainRandSeed), 0));
 	for(i = 0; i < settings.ChainLength - 1; i++)
 	{
 		seeds[i] = random();
 	}
-	write_DEHT_Seed(deht, seeds, settings.ChainLength - 1);
+	if (DEHT_STATUS_SUCCESS != write_DEHT_Seed(deht, seeds, settings.ChainLength - 1))
+	{
+		freelex(lex);
+		freerule(passgenctx);
+		free(seeds);
+		lock_DEHT_files(deht);
+		return 1;
+	}
 
 	numOfChains = 10 * (passgenctx->numOfPasswords / settings.ChainLength);
 	if (numOfChains == 0) numOfChains = 1;
@@ -103,14 +113,19 @@ int main(int argc, char** argv)
 		printf("%2.1f%%: The %lu/%lu chain for %s is \t%s : \t%s\n", 100*((float)i/(float)numOfChains),
 				i, numOfChains,	settings.Rule, origpass, hexbuf);
 #endif
-		add_DEHT(deht, (unsigned char*)hashbuf, settings.hashed_password_len, (unsigned char*)origpass, strlen(origpass));
+		if (DEHT_STATUS_SUCCESS != add_DEHT(deht, (unsigned char*)hashbuf, settings.hashed_password_len, (unsigned char*)origpass, strlen(origpass)))
+		{
+			break;
+		}
 	}
 
 	lock_DEHT_files(deht);
 	freerule(passgenctx);
 	freelex(lex);
 	free(seeds);
+#ifdef DEBUG
 	printf("Done.\n");
+#endif
 	return EXIT_SUCCESS;
 }
 #endif

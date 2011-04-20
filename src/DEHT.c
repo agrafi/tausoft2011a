@@ -98,6 +98,26 @@ DEHT *create_empty_DEHT(const char *prefix,/*add .key and .data to open two file
 	d->header.nPairsPerBlock = nPairsPerBlock;
 	d->header.numEntriesInHashTable = numEntriesInHashTable;
 	d->header.nBytesPerValidationKey = nBytesPerKey;
+
+	if (fileexists(d->sKeyFileName))
+	{
+		fprintf(stderr, "Error: File \"%s\" already exists\n", d->sKeyFileName);
+		release_deht(d);
+		return NULL;
+	}
+	if (fileexists(d->sDataFileName))
+	{
+		fprintf(stderr, "Error: File \"%s\" already exists\n", d->sDataFileName);
+		release_deht(d);
+		return NULL;
+	}
+	if (fileexists(d->sSeedFileName))
+	{
+		fprintf(stderr, "Error: File \"%s\" already exists\n", d->sSeedFileName);
+		release_deht(d);
+		return NULL;
+	}
+
 	if ((d->dataFP = fopen(d->sDataFileName, "w+b")) == NULL)
 	{
 		perror("Could not open DEHT data file");
@@ -125,14 +145,14 @@ DEHT *create_empty_DEHT(const char *prefix,/*add .key and .data to open two file
 	}
 
 	d->hashPointersForLastBlockImageInMemory = calloc(d->header.numEntriesInHashTable, sizeof(DEHT_DISK_PTR)); /*Tail*/
-	if (d->hashPointersForLastBlockImageInMemory)
+	if (!d->hashPointersForLastBlockImageInMemory)
 	{
 		release_deht(d);
 		return NULL;
 	}
 
 	d->hashTableOfPointersImageInMemory = calloc(d->header.numEntriesInHashTable, sizeof(DEHT_DISK_PTR));
-	if (d->hashTableOfPointersImageInMemory)
+	if (!d->hashTableOfPointersImageInMemory)
 	{
 		release_deht(d);
 		return NULL;
@@ -294,6 +314,33 @@ int add_DEHT ( DEHT *ht, const unsigned char *key, int keyLength,
 	return DEHT_STATUS_SUCCESS;
 }
 
+/********************************************************************************/
+/* Function insert_uniquely_DEHT inserts an ellement.                           */
+/* Inputs: DEHT to insert into, key and data (as binary buffer with size)       */
+/* Output: just status of action:                                               */
+/* If exist updates data and returns DEHT_STATUS_NOT_NEEDED                     */
+/* If successfully insert returns DEHT_STATUS_SUCCESS.                          */
+/* If fail, returns C                                            */
+/* Notes:                                                                       */
+/* if hashTableOfPointersImageInMemory use it                                   */
+/* if  null, do not load table of pointers into memory just make simple         */
+/* insert using several fseek when necessary.                                   */
+/********************************************************************************/
+int insert_uniquely_DEHT ( DEHT *ht, const unsigned char *key, int keyLength,
+				 const unsigned char *data, int dataLength)
+{
+	int retVal = query_DEHT ( ht, key, keyLength, (unsigned char *)data, dataLength);
+	if(retVal == DEHT_STATUS_FAIL)
+	{
+		return DEHT_STATUS_FAIL;
+	}
+	else if(retVal == 0)
+	{
+		return add_DEHT(ht, key, keyLength, data, dataLength);
+	}
+
+	return DEHT_STATUS_NOT_NEEDED;
+}
 /************************************************************************************/
 /* Function write_DEHT_pointers_table writes pointer of tables RAM to Disk & release*/
 /* Input: DEHT to act on.                                                           */

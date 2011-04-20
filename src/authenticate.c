@@ -24,7 +24,8 @@ int readLineFromFile(FILE* file, record* newuser)
 	char* position = NULL;
 
 	buffer = (char*)calloc(1, MAX_INPUT*sizeof(char));
-	assert(buffer != NULL);
+	if (!buffer)
+		return CMD_QUIT;
 
 
 	memset(buffer, 0, MAX_INPUT*sizeof(char));
@@ -32,21 +33,13 @@ int readLineFromFile(FILE* file, record* newuser)
 	/* find first tab */
 	if ((position = strchr(buffer, '\t')) == NULL)
 	{
-		/*
-		fprintf(stderr, "Error: Corrupted file, no tab found.\n");
-		*/
 		free(buffer);
-
 		return CMD_QUIT;
 	}
 	*position = '\0';
 	strncpy((char*)&(newuser->username), buffer, position - buffer);
 	memset((void*)&(newuser->hashed_password), 0, sizeof(newuser->hashed_password));
 	hexa2binary(position+1, (unsigned char*)&(newuser->hashed_password), MIN(newuser->hashed_password_len, sizeof(newuser->hashed_password)));
-#ifdef DEBUG
-	printf("user: %s pass: %s\n", newuser->username, (char*)&(newuser->password));
-	printHash(newuser, stdout); printf("\n");
-#endif
 	free(buffer);
 	return CMD_VALID;
 }
@@ -57,7 +50,7 @@ int main(int argc, char** argv) {
 	BasicHashFunctionPtr hashptr;
 	char* filename = NULL;
 	FILE* filename_handle = NULL;
-	char buffer[MAX_FIELD];
+	char buffer[MAX_FIELD] = {0};
 	int i = 0;
 	int dblen = 0;
 	record* newuser = NULL;
@@ -109,13 +102,18 @@ int main(int argc, char** argv) {
 	}
 	dblen = numOfLines(filename);
 	db = (record*)calloc(1, sizeof(record)*dblen);
-	assert(db != NULL);
+	if (!db)
+		return 1;
 
 	i = 0;
 	while(1)
 	{
 		newrecord = (record*)calloc(1, sizeof(record));
-		assert(newrecord != NULL);
+		if(!newrecord)
+		{
+			free(db);
+			break;
+		}
 		newrecord->hashed_password_len = hashed_password_len;
 		quit = readLineFromFile(filename_handle, newrecord);
 		if (quit == CMD_QUIT)
@@ -133,7 +131,8 @@ int main(int argc, char** argv) {
 	{
 			approved = 0;
 			newuser = (record*)calloc(1, sizeof(record));
-			assert(newuser != NULL);
+			if(!newuser)
+				break;
 			newuser->hashptr = hashptr;
 			newuser->hash = hashfunc;
 			newuser->hashed_password_len = hashed_password_len;
@@ -150,7 +149,7 @@ int main(int argc, char** argv) {
 			{
 
 #ifdef DEBUG
-		printf("user: %s pass: %s\n", newuser->username, &(newuser->password));
+		printf("user: %s pass: %s\n", newuser->username,(char*) &(newuser->password));
 		printHash(newuser, stdout); printf("\n");
 #endif
 

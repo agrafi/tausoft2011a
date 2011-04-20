@@ -31,12 +31,17 @@ int readLineFromUser(record* newuser)
 	char* position = NULL;
 
 	buffer = (char*)calloc(1, MAX_INPUT*sizeof(char));
-	assert(buffer != NULL);
+	if(!buffer)
+		return CMD_QUIT;
 
 
 	memset(buffer, 0, MAX_INPUT*sizeof(char));
 	printf(">>");
-	fgets(buffer, MAX_INPUT, stdin);
+	if (buffer != fgets(buffer, MAX_INPUT, stdin))
+	{
+		free(buffer);
+		return CMD_QUIT;
+	}
 	if (strncmp("quit\n", buffer, 6) == 0)
 	{
 		/* quit detected, TODO: free everything */
@@ -80,8 +85,6 @@ int main(int argc, char** argv) {
 	BasicHashFunctionPtr hashptr;
 	char* filename = NULL;
 	FILE* filename_handle = NULL;
-	char password[MAX_FIELD];
-	int i = 0;
 	record* newuser = NULL;
 	char quit = 1;
 	int hashed_password_len = 0;
@@ -127,7 +130,9 @@ int main(int argc, char** argv) {
 	while(quit)
 	{
 			newuser = (record*)calloc(1, sizeof(record));
-			assert(newuser != NULL);
+			if (!newuser)
+				break;
+
 			newuser->hashptr = hashptr;
 			newuser->hash = hashfunc;
 			newuser->hashed_password_len = hashed_password_len;
