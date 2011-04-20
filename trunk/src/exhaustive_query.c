@@ -17,7 +17,8 @@ int readHashFromUser(char* hashedpass)
 	char* buffer = NULL;
 
 	buffer = (char*)calloc(1, MAX_INPUT*sizeof(char));
-	assert(buffer != NULL);
+	if (!buffer)
+		return CMD_QUIT;
 
 
 	memset(buffer, 0, MAX_INPUT*sizeof(char));
@@ -51,14 +52,8 @@ int main(int argc, char** argv)
 {
 	DEHT* deht = NULL;
 	char* prefix = argv[1];
-	/*unsigned int passgensize = 0;*/
-	/*unsigned long k = 0;*/
-	/*unsigned long numOfPasswords = 0;*/
-	/*char* pass = NULL;*/
-	/*unsigned long i = 0; */
 	int quit = 0, cmd = CMD_CONTINUE;
 	unsigned long keylen;
-	/*unsigned long datalen;*/
 	int hashed_password_len = 0;
 
 	char keybuf[SHA1_OUTPUT_LENGTH_IN_BYTES];
@@ -121,50 +116,7 @@ int main(int argc, char** argv)
 		}
 	}
 
-
-
-
-
 	lock_DEHT_files(deht);
-	//free(keybuf);
-	//free(databuf);
-	return 0;
-
-
-	/*
-	int i = 0, len = 0, datalen = 0, keylen = 0;
-	DEHT* deht = create_empty_DEHT("deht", hashfun, validfun, "SHA1", 65536, ELEMENTS_PER_NODE, 8);
-	char* keybuf = calloc(1, 20);
-	char* databuf = calloc(1, 30);
-	datalen = hexa2binary("123456", databuf, 30);
-	keylen = hexa2binary("7c4a8d09ca3762af61e59520943dc26494f8941b", keybuf, 20);
-	add_DEHT(deht, keybuf, keylen, databuf, datalen);
-
-	for (i=0; i<11; i++)
-	{
-		datalen = hexa2binary("65432100", databuf, 30);
-		keylen = hexa2binary("dd5fef9c1c1da1394d6d34b248c51be2ad740840", keybuf, 20);
-		add_DEHT(deht, keybuf, keylen, databuf, datalen);
-	}
-	datalen = hexa2binary("123456", databuf, 30);
-	keylen = hexa2binary("7c4a8d09ca3762af61e59520943dc26494f8941b", keybuf, 20);
-	memset(databuf, 0, 30);
-	len = query_DEHT(deht, keybuf, 20, databuf, 30);
-	memset(keybuf, 0 , 20);
-	binary2hexa(databuf, len, keybuf, 20);
-	printf("data is %s\n", keybuf);
-	lock_DEHT_files(deht);
-
-	deht = load_DEHT_from_files("deht", hashfun, validfun);
-	datalen = hexa2binary("123456", databuf, 30);
-	keylen = hexa2binary("7c4a8d09ca3762af61e59520943dc26494f8941b", keybuf, 20);
-	memset(databuf, 0, 30);
-	len = query_DEHT(deht, keybuf, 20, databuf, 30);
-	memset(keybuf, 0 , 20);
-	binary2hexa(databuf, len, keybuf, 20);
-	printf("data is %s\n", keybuf);
-	*/
-
 	return EXIT_SUCCESS;
 }
 #endif

@@ -102,6 +102,7 @@ passgencontext* createrule(char* rule, lexicon* lex, unsigned int* passgensize)
 				break;
 
 			default:
+				fprintf(stderr, "malformed rule expression\n");
 				break;
 			}
 			current++;
@@ -307,20 +308,19 @@ lexicon* preprocessLexicon(char* filename)
 		freelex(lex);
 		return NULL;
 	}
-	/* TODO check return values! */
 	if (0 != fseek(f, 0, SEEK_END))
 	{
 		perror("Could not seek lexicon file");
 		freelex(lex);
 		return NULL;
 	}
-	buffersize = ftell(f) + 1; /* room for additional \n */
-	if (buffersize == 0) // == ftell=-1 which means error
+	buffersize = ftell(f);
+	if (buffersize == -1) // which means error
 	{
 		freelex(lex);
 		return NULL;
 	}
-	lex->buffer = calloc(1, buffersize);
+	lex->buffer = calloc(1, buffersize + 1);
 	if (!lex->buffer)
 	{
 		freelex(lex);
@@ -344,7 +344,7 @@ lexicon* preprocessLexicon(char* filename)
 		}
 	}
 	/* check last char */
-	if (lex->buffer[i-2] != '\n')
+	if (lex->buffer[i-1] != '\n')
 	{
 		lex->numOfWordsInLexicon++;
 		lex->buffer[i] = '\n';

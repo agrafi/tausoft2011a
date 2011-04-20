@@ -16,32 +16,6 @@
 #define NUM_PASS_TO_CHECK 1000
 
 #ifdef CRACK_USING_RAINBOW_TABLE
-/*
- * For j = chain_length to 1 do
-	//Gamble that our password is in location "j" in some chain as follow:
-	curHash=target
-	// go down the chain (chain_length-j ) steps (till curHash = end-point hash).
-	For i=j to chain_length do
-		k = pseudo-random-function with seed seed[i] and input curHash;
-		*
-		NewPassword = get_kth_password (k,S)
-		curHash = MD5(NewPassword);
-	end // going down the chain.
-	Multi-query in disk-embedded hash table with key: curHash.
-	Get data (passwords set) to array: tryThisPassword[0..n]
-	For k =0 to n-1 // if n=0 (no password is found), we guessed wrong j, continue loop other j.
-		//assume tryThisPassword[k] is beginning of correct chain
-		curPass = tryThisPassword[k]
-		Go j-1 steps down // (till curPass is the password before the hash we are looking for).
-		Check whether MD5(curPass)==target
-		If so, return curPass
-		Else, continue loop // false alarm.
-	End // looping multiple query
-End //main loop on j
-If you arrived here, it means that the target does not exist in either 1 or 2 or 3 ... location of any-
-chain, in other-words, not in our Rainbow-Table.
- *
- */
 
 char* queryRainbowTable(DEHT* deht, unsigned char* target, rainbow_settings* settings, unsigned long* seeds,
 		passgencontext* passgenctx, lexicon* lex, char* pass)
@@ -72,6 +46,10 @@ char* queryRainbowTable(DEHT* deht, unsigned char* target, rainbow_settings* set
 		n = mult_query_DEHT(deht, (unsigned char*)curHash, settings->hashed_password_len,
 				(unsigned char*)tryThisPassword, MAX_MATCHED_PASSWORDS * MAX_FIELD,
 				(unsigned char**)dataPointers, MAX_MATCHED_PASSWORDS);
+
+		// if query failed, continue to next j.
+		if (n == DEHT_STATUS_FAIL)
+			continue;
 
 		// if n=0 (no password is found), we guessed wrong j, continue loop other j.
 		if (n == 0)
@@ -114,10 +92,12 @@ int main(int argc, char** argv)
 	unsigned long* seeds = NULL;;
 	char cmd = CMD_CONTINUE;
 	char quit = 0;
-	unsigned long i=1, succeeded=0, z=0;
-
 	unsigned char keybuf[SHA1_OUTPUT_LENGTH_IN_BYTES];
-	char hashbuf[MAX_FIELD+1], hashbuf2[MAX_FIELD+1];
+	char hashbuf[MAX_FIELD+1];
+#ifdef DEBUG_TEST
+	unsigned long i=1, succeeded=0, z=0;
+	char hashbuf2[MAX_FIELD+1];
+#endif
 	char hexbuf[MAX_FIELD+1];
 	char databuf[MAX_INPUT];
 
@@ -138,11 +118,36 @@ int main(int argc, char** argv)
 		return 1;
 
 	lex = preprocessLexicon(settings.LexiconName);
+	if (!lex)
+	{
+		lock_DEHT_files(deht);
+		return 1;
+	}
 	passgenctx = createrule(settings.Rule, lex, &passgensize);
+	if (!passgenctx)
+	{
+		freelex(lex);
+		lock_DEHT_files(deht);
+		return 1;
+	}
 
 	// Read seeds
 	seeds = calloc(settings.ChainLength - 1, sizeof(seeds));
-	read_DEHT_Seed(deht, seeds, settings.ChainLength - 1);
+	if (!seeds)
+	{
+		freelex(lex);
+		freerule(passgenctx);
+		lock_DEHT_files(deht);
+		return 1;
+	}
+	if (DEHT_STATUS_SUCCESS != read_DEHT_Seed(deht, seeds, settings.ChainLength - 1))
+	{
+		freelex(lex);
+		freerule(passgenctx);
+		free(seeds);
+		lock_DEHT_files(deht);
+		return 1;
+	}
 
 
 	while (!quit)
@@ -151,7 +156,7 @@ int main(int argc, char** argv)
 		memset(&databuf, 0, MAX_INPUT);
 		memset(&hexbuf, 0, MAX_FIELD);
 
-#ifdef DEBUG
+#ifdef DEBUG_TEST
 		memset(hashbuf2, 0, 2*SHA1_OUTPUT_LENGTH_IN_BYTES + 1);
 		cmd = CMD_VALID;
 		if(i <= NUM_PASS_TO_CHECK)
@@ -185,7 +190,7 @@ int main(int argc, char** argv)
 				memcpy(hexbuf, hashbuf+1, strlen(hashbuf)-1);
 				settings.hashptr((unsigned char*)hexbuf, strlen(hexbuf), (unsigned char*)keybuf);
 				binary2hexa((unsigned char*)keybuf, settings.hashed_password_len, hexbuf, sizeof(hexbuf));
-				printf("In hexa password is%s\n", hexbuf);
+				printf("In hexa password is%s\n", hexbuf); // TODO: should it be with space?
 			}
 			else
 			{
@@ -197,11 +202,14 @@ int main(int argc, char** argv)
 				}
 				keylen = hexa2binary(hashbuf, (unsigned char*)keybuf, sizeof(keybuf));
 			}
+
 			queryRainbowTable(deht, (unsigned char*)keybuf, &settings, seeds, passgenctx, lex, pass);
 			if (strlen(pass) != 0)
 			{
 				printf("Try to login with password \"%s\"\n", pass);
+#ifdef DEBUG_TEST
 				succeeded++;
+#endif
 			}
 			else
 				printf("Sorry but this hash doesn't appear in pre-processing\n");
@@ -209,8 +217,8 @@ int main(int argc, char** argv)
 		}
 	}
 
-#ifdef DEBUG
-	printf("\nYou succeeded %d passes out of %d which is %3.2f %%\n",succeeded,NUM_PASS_TO_CHECK,((float)succeeded/NUM_PASS_TO_CHECK)*100);
+#ifdef DEBUG_TEST
+	printf("\nYou succeeded %lu passes out of %d which is %3.2f %%\n",succeeded,NUM_PASS_TO_CHECK,((float)succeeded/NUM_PASS_TO_CHECK)*100);
 #endif
 
 	freerule(passgenctx);

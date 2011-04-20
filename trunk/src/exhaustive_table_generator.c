@@ -7,6 +7,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <time.h>
 #include "helpers.h"
 #include "DEHT.h"
 #include "rules.h"
@@ -15,7 +16,7 @@
 
 #define binaryHashMaker hashfun
 #define cryptHashTo64bit validfun
-#ifdef DEBUG
+
 void test1(void) {
 	int i = 0;
 	DEHT *ht;
@@ -250,7 +251,6 @@ void test3() {
 
 	printf("done!");
 }
-#endif
 
 
 #ifdef EXHAUSTIVE_TABLE_GENERATOR
@@ -270,18 +270,12 @@ int main(int argc, char** argv)
 	char pass[MAX_FIELD] = { 0 };
 	unsigned long i = 0;
 	unsigned long idx = 0;
-	unsigned long datalen, keylen;
 
 	enum Hashfunc hashfunc;
 	BasicHashFunctionPtr hashptr;
 	int hashed_password_len = 0;
 
-	//char* keybuf = calloc(1, SHA1_OUTPUT_LENGTH_IN_BYTES);
-	char keybuf[SHA1_OUTPUT_LENGTH_IN_BYTES];
-	//char* hashbuf = calloc(1, 2*SHA1_OUTPUT_LENGTH_IN_BYTES + 1);
 	char hashbuf[2*SHA1_OUTPUT_LENGTH_IN_BYTES + 1];
-	//char* databuf = calloc(1, MAX_INPUT);
-	char databuf[MAX_INPUT];
 
 	/* initialize random generator */
 	srandom(time(NULL));
@@ -319,7 +313,18 @@ int main(int argc, char** argv)
 		return 1;
 
 	lex = preprocessLexicon(lexname);
+	if(!lex)
+	{
+		lock_DEHT_files(deht);
+		return 1;
+	}
 	passgenctx = createrule(rule, lex, &passgensize);
+	if (!passgenctx)
+	{
+		freelex(lex);
+		lock_DEHT_files(deht);
+		return 1;
+	}
 
 	// all is specified
 	if (k == 0)
@@ -331,19 +336,20 @@ int main(int argc, char** argv)
 	{
 		idx = (k == 0 ? i + 1: random() % (passgenctx->numOfPasswords - 1) + 1);
 		generatePassword(passgenctx, lex, idx, pass);
-		hashptr(pass, strlen(pass), hashbuf);
+		hashptr((unsigned char*)pass, strlen(pass), (unsigned char*)hashbuf);
 		// keylen = hexa2binary(hashbuf, keybuf, SHA1_OUTPUT_LENGTH_IN_BYTES);
-#ifdef DEBUG
+//#ifdef DEBUG
 		printf("The %luth password (out of %lu) for %s is %s\n", idx, passgenctx->numOfPasswords, rule, pass);
-#endif
-		add_DEHT(deht, hashbuf, hashed_password_len, pass, strlen(pass));
-		//free(pass);
+//#endif
+		if (DEHT_STATUS_SUCCESS != add_DEHT(deht, (unsigned char*)hashbuf, hashed_password_len, (unsigned char*)pass, strlen(pass)))
+		{
+			break;
+		}
 	}
 
 	lock_DEHT_files(deht);
 	freerule(passgenctx);
-	//free(keybuf);
-	//free(databuf);
+	freelex(lex);
 	return EXIT_SUCCESS;
 }
 #endif
