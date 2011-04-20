@@ -36,6 +36,9 @@ passgencontext* createrule(char* rule, lexicon* lex, unsigned int* passgensize)
 {
 	/* scan expression and determine passcell array size */
 	int i = 0, counter = 0, j = 0, t = 0;
+	unsigned long mul = 1;
+	unsigned long mul_prev = 1;
+
 	passblock* passgen = NULL;
 	passgencontext* retcontext = calloc(1, sizeof(passgencontext));
 	if (!retcontext)
@@ -87,13 +90,14 @@ passgencontext* createrule(char* rule, lexicon* lex, unsigned int* passgensize)
 			case '%':
 				if (*(current + 1) == '\0')
 				{
-					/// TODO: format message
-					fprintf(stderr, "malformed expression\n");
+					fprintf(stderr, "malformed rule expression\n");
 					freerule(retcontext);
 					return NULL;
 				}
-				counter++; //= atoi(current+1);
-				current++;
+				counter++;
+				while (isdigit(*(current+1)))
+					current++;
+
 				break;
 			case '?':
 			case '@':
@@ -103,7 +107,8 @@ passgencontext* createrule(char* rule, lexicon* lex, unsigned int* passgensize)
 
 			default:
 				fprintf(stderr, "malformed rule expression\n");
-				break;
+				freerule(retcontext);
+				return NULL;
 			}
 			current++;
 		}
@@ -124,6 +129,12 @@ passgencontext* createrule(char* rule, lexicon* lex, unsigned int* passgensize)
 			case '*':
 				passgen[i].type = LETTERS;
 				passgen[i].numOfCells = atoi(current+1);
+				if (passgen[i].numOfCells == 0)
+				{
+					fprintf(stderr, "malformed rule expression\n");
+					freerule(retcontext);
+					return NULL;
+				}
 				passgen[i].cells = calloc(passgen[i].numOfCells, sizeof(passcell));
 				if (!passgen[i].cells)
 				{
@@ -136,11 +147,18 @@ passgencontext* createrule(char* rule, lexicon* lex, unsigned int* passgensize)
 					passgen[i].cells[j].range = 2*26;
 				}
 				i++;
-				current++;
+				while (isdigit(*(current+1)))
+					current++;
 				break;
 			case '^':
 				passgen[i].type = NUMBERS;
 				passgen[i].numOfCells = atoi(current+1);
+				if (passgen[i].numOfCells == 0)
+				{
+					fprintf(stderr, "malformed rule expression\n");
+					freerule(retcontext);
+					return NULL;
+				}
 				passgen[i].cells = calloc(passgen[i].numOfCells, sizeof(passcell));
 				if (!passgen[i].cells)
 				{
@@ -153,11 +171,18 @@ passgencontext* createrule(char* rule, lexicon* lex, unsigned int* passgensize)
 					passgen[i].cells[j].range = 10;
 				}
 				i++;
-				current++;
+				while (isdigit(*(current+1)))
+					current++;
 				break;
 			case '%':
 				passgen[i].type = ALPHANUMERIC;
 				passgen[i].numOfCells = atoi(current+1);
+				if (passgen[i].numOfCells == 0)
+				{
+					fprintf(stderr, "malformed rule expression\n");
+					freerule(retcontext);
+					return NULL;
+				}
 				passgen[i].cells = calloc(passgen[i].numOfCells, sizeof(passcell));
 				if (!passgen[i].cells)
 				{
@@ -170,7 +195,8 @@ passgencontext* createrule(char* rule, lexicon* lex, unsigned int* passgensize)
 					passgen[i].cells[j].range = 10 + 26 + 4;;
 				}
 				i++;
-				current++;
+				while (isdigit(*(current+1)))
+					current++;
 				break;
 			case '?':
 				passgen[i].type = CHARACTER;
@@ -231,13 +257,19 @@ passgencontext* createrule(char* rule, lexicon* lex, unsigned int* passgensize)
 		retcontext->terms[t].blocks = passgen;
 
 		/* calc each block range*/
-		unsigned long mul = 1;
 		for(i=0; i< retcontext->terms[t].numOfBlocks; i++)
 		{
 			mul = 1;
 			for (j=0; j<retcontext->terms[t].blocks[i].numOfCells; j++)
 			{
+				mul_prev = mul;
 				mul *= retcontext->terms[t].blocks[i].cells[j].range;
+				if (mul < mul_prev) // detect overflow
+				{
+					printf("Ahhhh. Rule overflow detected.\n");
+					freerule(retcontext);
+					return NULL;
+				}
 				retcontext->terms[t].blocks[i].range += mul;
 			}
 			if ((retcontext->terms[t].blocks[i].type != LEX) && (retcontext->terms[t].blocks[i].type != LEXCS))
@@ -248,10 +280,17 @@ passgencontext* createrule(char* rule, lexicon* lex, unsigned int* passgensize)
 		}
 
 		/* counts number of possible passwords for a term*/
-		retcontext->terms[t].numOfPasswords = 1;
+		mul_prev = retcontext->terms[t].numOfPasswords = 1;
 		for(i=0; i< retcontext->terms[t].numOfBlocks; i++)
 		{
+			mul_prev = retcontext->terms[t].numOfPasswords;
 			retcontext->terms[t].numOfPasswords *= retcontext->terms[t].blocks[i].range;
+			if (retcontext->terms[t].numOfPasswords < mul_prev) // detect overflow
+			{
+				printf("Ahhhh. Rule overflow detected.\n");
+				freerule(retcontext);
+				return NULL;
+			}
 		}
 	}
 
@@ -458,7 +497,6 @@ void advanceCell(passcell* cell, lexicon* lex, unsigned long k, char* pass)
 		strncpy(celldata, lex->words[k].word, MAX_FIELD);
 		break;
 	default:
-		/// TODO: format error string
 		fprintf(stderr, "Unknown cell type %d\n", cell->type);
 	}
 	snprintf(temp, MAX_FIELD, "%s%s", celldata, pass);
