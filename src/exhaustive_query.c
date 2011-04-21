@@ -100,7 +100,7 @@ int main(int argc, char** argv)
 		case CMD_CONTINUE:
 			break;
 		case CMD_VALID:
-			// key buf holds the hashed password string
+			/* key buf holds the hashed password string */
 			if (strlen(hashbuf) != hashed_password_len * 2)
 			{
 				fprintf(stderr, "Error: Wrong hash size \n");
