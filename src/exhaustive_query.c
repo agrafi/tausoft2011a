@@ -37,7 +37,7 @@ int readHashFromUser(char* hashedpass)
 	}
 	else
 	{
-		// drop trailing newline
+		/* drop trailing newline */
 		if (buffer[strlen(buffer)-1] == '\n')
 			buffer[strlen(buffer)-1] = '\0';
 		strncpy(hashedpass, buffer, strlen(buffer)+1);

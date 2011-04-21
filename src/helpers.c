@@ -1,3 +1,4 @@
+#define _GNU_SOURCE
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
@@ -68,26 +69,26 @@ int extractParameterNameValue(char* buffer, char* parameterName, char* parameter
 	char* currentPtr = buffer;
 	char* paramPtr = parameterName;
 
-	// skip white spaces
+	/* skip white spaces */
 	while (*currentPtr && isblank(*currentPtr))
 		currentPtr++;
 
-	// copy from buffer to parameter name until first non alpha char
+	/* copy from buffer to parameter name until first non alpha char */
 	while(*currentPtr && isalpha(*currentPtr))
 		*paramPtr++ = *currentPtr++;
 
-	// terminate parameter name
+	/* terminate parameter name */
 	*paramPtr = '\0';
 
-	// skip white spaces
+	/* skip white spaces */
 	while (*currentPtr && isblank(*currentPtr))
 		currentPtr++;
 
-	// check for '='
+	/* check for '=' */
 	if (*currentPtr++ != '=')
 		return PARAM_INVALID;
 
-	// skip white spaces
+	/* skip white spaces */
 	while (*currentPtr && isblank(*currentPtr))
 		currentPtr++;
 
@@ -96,14 +97,14 @@ int extractParameterNameValue(char* buffer, char* parameterName, char* parameter
 
 	paramPtr = parameterValue;
 
-	// copy from buffer to parameter name until first blank char
+	/* copy from buffer to parameter name until first blank char */
 	while(*currentPtr && !isblank(*currentPtr))
 		*paramPtr++ = *currentPtr++;
 
-	// terminate parameter name
+	/* terminate parameter name */
 	*paramPtr = '\0';
 
-	// skip white spaces
+	/* skip white spaces */
 	while (*currentPtr && isblank(*currentPtr))
 		currentPtr++;
 
@@ -146,7 +147,7 @@ int parseSettings(rainbow_settings* settings, char* inipath)
 		if (buffer[strlen(buffer)-1] == '\n')
 			buffer[strlen(buffer)-1] = '\0';
 
-		// if empty line, continue
+		/* if empty line, continue */
 		if (strlen(buffer) == 0)
 			continue;
 
