@@ -90,9 +90,9 @@ int main(int argc, char** argv)
 		return 1;
 	}
 
-	// all is specified
+	/*  all is specified */
 	if (k == 0)
-		numOfPasswords = passgenctx->numOfPasswords - 1; // ignore the empty password
+		numOfPasswords = passgenctx->numOfPasswords - 1; /* ignore the empty password */
 	else
 		numOfPasswords = k;
 
@@ -101,7 +101,7 @@ int main(int argc, char** argv)
 		idx = (k == 0 ? i + 1: random() % (passgenctx->numOfPasswords - 1) + 1);
 		generatePassword(passgenctx, lex, idx, pass);
 		hashptr((unsigned char*)pass, strlen(pass), (unsigned char*)hashbuf);
-		// keylen = hexa2binary(hashbuf, keybuf, SHA1_OUTPUT_LENGTH_IN_BYTES);
+		/* keylen = hexa2binary(hashbuf, keybuf, SHA1_OUTPUT_LENGTH_IN_BYTES); */
 #ifdef DEBUG
 		printf("The %luth password (out of %lu) for %s is %s\n", idx, passgenctx->numOfPasswords, rule, pass);
 #endif

@@ -61,7 +61,7 @@ int main(int argc, char** argv)
 		return 1;
 
 
-	// Generate seeds
+	/*  Generate seeds */
 	seeds = calloc(settings.ChainLength, sizeof(seeds));
 	if (!seeds)
 	{
@@ -95,8 +95,8 @@ int main(int argc, char** argv)
 		strncpy(origpass, pass, MAX_FIELD);
 		settings.hashptr((const unsigned char*)pass, strlen(pass), (unsigned char*)hashbuf);
 #ifdef DEBUG
-			//binary2hexa(hashbuf, settings.hashed_password_len, hexbuf, sizeof(hexbuf));
-			//printf("\t%s \t%s\n", pass, hexbuf);
+			/* binary2hexa(hashbuf, settings.hashed_password_len, hexbuf, sizeof(hexbuf)); */
+			/* printf("\t%s \t%s\n", pass, hexbuf); */
 #endif
 		for (j = 0; j <settings.ChainLength - 1; j++)
 		{
@@ -105,7 +105,7 @@ int main(int argc, char** argv)
 			settings.hashptr((unsigned char*)pass, strlen(pass), (unsigned char*)hashbuf);
 #ifdef DEBUG
 			binary2hexa((unsigned char*)hashbuf, settings.hashed_password_len, hexbuf, sizeof(hexbuf));
-			// printf("\t%s \t%s\n", pass, hexbuf);
+			/* printf("\t%s \t%s\n", pass, hexbuf); */
 #endif
 		}
 #ifdef DEBUG

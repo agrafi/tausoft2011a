@@ -13,9 +13,11 @@
 
 void freerule(passgencontext* ctx)
 {
+	int i = 0, j = 0;
+
 	if (!ctx)
 		return;
-	int i = 0, j = 0;
+
 	for (i = 0; i < ctx->numOfTerms; i++)
 	{
 		for (j = 0; j < ctx->terms[i].numOfBlocks; j++)
@@ -38,6 +40,8 @@ passgencontext* createrule(char* rule, lexicon* lex, unsigned int* passgensize)
 	int i = 0, counter = 0, j = 0, t = 0;
 	unsigned long mul = 1;
 	unsigned long mul_prev = 1;
+	char* expression = NULL;
+	char* current = NULL;
 
 	passblock* passgen = NULL;
 	passgencontext* retcontext = calloc(1, sizeof(passgencontext));
@@ -48,8 +52,8 @@ passgencontext* createrule(char* rule, lexicon* lex, unsigned int* passgensize)
 
 	retcontext->numOfTerms = 1;
 	memcpy(retcontext->rule, rule, strlen(rule) + 1);
-	char* expression = retcontext->rule;
-	char* current = expression;
+	expression = retcontext->rule;
+	current = expression;
 
 
 	for (i=0; i<strlen(expression); i++)
@@ -264,7 +268,7 @@ passgencontext* createrule(char* rule, lexicon* lex, unsigned int* passgensize)
 			{
 				mul_prev = mul;
 				mul *= retcontext->terms[t].blocks[i].cells[j].range;
-				if (mul < mul_prev) // detect overflow
+				if (mul < mul_prev) /* detect overflow */
 				{
 					printf("Ahhhh. Rule overflow detected.\n");
 					freerule(retcontext);
@@ -354,7 +358,7 @@ lexicon* preprocessLexicon(char* filename)
 		return NULL;
 	}
 	buffersize = ftell(f);
-	if (buffersize == -1) // which means error
+	if (buffersize == -1) /* which means error */
 	{
 		freelex(lex);
 		return NULL;
@@ -366,7 +370,7 @@ lexicon* preprocessLexicon(char* filename)
 		return NULL;
 	}
 
-	rewind(f); // returns void
+	rewind(f); /* returns void */
 	if (buffersize != fread(lex->buffer, 1, buffersize, f))
 	{
 		freelex(lex);
@@ -509,12 +513,8 @@ char* advanceBlock(passblock* block, lexicon* lex, unsigned long k, char* pass)
 {
 	unsigned long currentCellIndex = block->numOfCells - 1;
 	if (k == 0)
-#ifdef DEBUG
-		//strncat(pass, "$", MAX_FIELD);
-		return "$";
-#else
 		return "";
-#endif
+
 	while (k != 0)
 	{
 		k--;
@@ -541,12 +541,11 @@ char* generatePassword(passgencontext* passgenctx, lexicon* lex, unsigned long k
 	}
 	currentBlockIndex = passgenctx->terms[currentTermIndex].numOfBlocks - 1;
 
-	// if k = range1*range2*...*rangem, treat as k == 1
+	/* if k = range1*range2*...*rangem, treat as k == 1 */
 	if (k==0) k++;
 
 	while (k != 0)
 	{
-		// k--;
 		advanceBlock(passgenctx->terms[currentTermIndex].blocks + currentBlockIndex, lex,
 				k % passgenctx->terms[currentTermIndex].blocks[currentBlockIndex].range, pass);
 		k = k / passgenctx->terms[currentTermIndex].blocks[currentBlockIndex].range;
@@ -562,7 +561,7 @@ char* generatePassword(passgencontext* passgenctx, lexicon* lex, unsigned long k
 
 #ifdef RULES_PREPROCESS
 int main(int argc, char** argv) {
-	unsigned long k = CONST_K;//1221-1;//123321 + 3;//10 + 26 + 4 + 28; //pow(52,0) + pow(52,1) + pow(52,2);
+	unsigned long k = CONST_K;/*1221-1;//123321 + 3;//10 + 26 + 4 + 28; //pow(52,0) + pow(52,1) + pow(52,2); TODO: remove PREPROCESS Code*/
 	unsigned int passgensize = 0;
 	char pass[MAX_FIELD+1];
 	pass[0] = NULL;
