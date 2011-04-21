@@ -285,7 +285,7 @@ passgencontext* createrule(char* rule, lexicon* lex, unsigned int* passgensize)
 		{
 			mul_prev = retcontext->terms[t].numOfPasswords;
 			retcontext->terms[t].numOfPasswords *= retcontext->terms[t].blocks[i].range;
-			if (retcontext->terms[t].numOfPasswords < mul_prev) // detect overflow
+			if (retcontext->terms[t].numOfPasswords < mul_prev) /* detect overflow */
 			{
 				printf("Ahhhh. Rule overflow detected.\n");
 				freerule(retcontext);

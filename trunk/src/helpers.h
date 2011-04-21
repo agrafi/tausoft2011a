@@ -1,6 +1,7 @@
 #ifndef HELPERS_H
 #define HELPERS_H
 
+#define _GNU_SOURCE
 #include "misc.h"
 #include "stdio.h"
 #include <stdlib.h>
