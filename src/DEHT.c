@@ -1,10 +1,6 @@
 /*
- * DEHT.c
- *
- *  Created on: Mar 12, 2011
- *      Author: a
+ * This file implements DEHT.h
  */
-
 #define _GNU_SOURCE
 #include <stdlib.h>
 #include <stdio.h>
@@ -53,6 +49,9 @@ int validfun(const unsigned char *keyBuf, int keySizeof,
 
 }
 
+/*
+ *  This function takes a DEHT and makes all the memory freeing needed.
+ */
 void release_deht(DEHT* d)
 {
 	if (d->hashPointersForLastBlockImageInMemory)
@@ -83,6 +82,17 @@ void release_deht(DEHT* d)
 	return;
 }
 
+/********************************************************************************/
+/* Function create_empty_DEHT creates a new DEHT.                               */
+/* Inputs: file names on disk (as prefix), hashing functions,                   */
+/*    identification name, and parameters regarding memory management           */
+/* Output:                                                                      */
+/* If fail, Returns NULL and prints informative error to stderr)                */
+/* It dump header by itself. Also null table of pointers.                       */
+/* Notes:                                                                       */
+/* Open them in RW permission (if exist then fail, do not overwrite).           */
+/* hashTableOfPointersImageInMemory, hashPointersForLastBlockImageInMemory:=NULL*/
+/********************************************************************************/
 DEHT *create_empty_DEHT(const char *prefix,/*add .key and .data to open two files return NULL if fail creation*/
                         hashKeyIntoTableFunctionPtr hashfun, hashKeyforEfficientComparisonFunctionPtr validfun,
                         const char *dictName,   /*e.g. MD5\0 */

@@ -1,10 +1,6 @@
 /*
- * exhaustive_query.c
- *
- *  Created on: Mar 12, 2011
- *      Author: a
+ * This file gets a DEHT prefix and checks if the input from the user is in it.
  */
-
 #include <stdio.h>
 #include <stdlib.h>
 #include "helpers.h"
@@ -12,6 +8,9 @@
 #include "rules.h"
 #include "assert.h"
 
+/*
+ * This function reads a hashed password from the user and returns it in hashedpass variable.
+ */
 int readHashFromUser(char* hashedpass)
 {
 	char* buffer = NULL;
@@ -46,7 +45,9 @@ int readHashFromUser(char* hashedpass)
 	return CMD_VALID;
 }
 
-
+/*
+ * Main loads deht from files, reads hash from user, queries deht and locks deht files.
+ */
 #ifdef EXHAUSTIVE_QUERY
 int main(int argc, char** argv)
 {

@@ -1,11 +1,6 @@
 /*
- ============================================================================
- Name        : create_authentication.c
- Author      : Aviv Graffi and Asaf Bruner
- Version     :
- Copyright   :
- Description : create authentication, first part of the project.
- ============================================================================
+ * This file receives a user-hashed password table, and simulates a "login" authentication process.
+ *
  */
 
 #include <stdio.h>
@@ -18,6 +13,10 @@
 #include "misc.h"
 #include "helpers.h"
 
+/*
+ * This function takes a file and a record and returns CMD_VALID after updating
+ * the record structure or CMD_QUIT if it fails.
+ */
 int readLineFromFile(FILE* file, record* newuser)
 {
 	char* buffer = NULL;
@@ -45,6 +44,10 @@ int readLineFromFile(FILE* file, record* newuser)
 }
 
 #ifdef AUTHENTICATE
+
+/*
+ * Main reads the file, reads input from user and tries to authenticate it against the file.
+ */
 int main(int argc, char** argv) {
 	enum Hashfunc hashfunc;
 	BasicHashFunctionPtr hashptr;

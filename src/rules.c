@@ -1,8 +1,5 @@
 /*
- * rules.c
- *
- *  Created on: Mar 2, 2011
- *      Author: a
+ * This file handles the rules preprocessing, parsing and generating.
  */
 
 #include "rules.h"
@@ -11,6 +8,9 @@
 #include <ctype.h>
 #include <stdlib.h>
 
+/*
+ * This function takes a passgencontext struct and makes all the memory freeing needed.
+ */
 void freerule(passgencontext* ctx)
 {
 	int i = 0, j = 0;
@@ -34,6 +34,9 @@ void freerule(passgencontext* ctx)
 	return;
 }
 
+/*
+ * This function takes a rule and returns its passgencontext struct
+ */
 passgencontext* createrule(char* rule, lexicon* lex, unsigned int* passgensize)
 {
 	/* scan expression and determine passcell array size */
@@ -309,6 +312,9 @@ passgencontext* createrule(char* rule, lexicon* lex, unsigned int* passgensize)
 	return retcontext;
 }
 
+/*
+ * This function takes a lexicon struct and makes all the memory freeing needed.
+ */
 void freelex(lexicon* lex)
 {
 	int i = 0;
@@ -334,6 +340,9 @@ void freelex(lexicon* lex)
 	return;
 }
 
+/*
+ * This function takes a path to a lexicon file and returns its lexicon struct
+ */
 lexicon* preprocessLexicon(char* filename)
 {
 	FILE* f = NULL;
@@ -434,7 +443,10 @@ lexicon* preprocessLexicon(char* filename)
 
 	return lex;
 }
-
+/*
+ * This function takes a passcell and number k and returns the k'th password
+ * after the current one in the pass variable.
+ */
 void advanceCell(passcell* cell, lexicon* lex, unsigned long k, char* pass)
 {
 	unsigned long counter = 0, j = 0, len = 0;
@@ -508,7 +520,10 @@ void advanceCell(passcell* cell, lexicon* lex, unsigned long k, char* pass)
 	return;
 }
 
-
+/*
+ * This function gets a passblock and a number k and returns the result
+ * of advanceCell of the entire block in the pass variable.
+ */
 char* advanceBlock(passblock* block, lexicon* lex, unsigned long k, char* pass)
 {
 	unsigned long currentCellIndex = block->numOfCells - 1;
@@ -526,6 +541,9 @@ char* advanceBlock(passblock* block, lexicon* lex, unsigned long k, char* pass)
 	return pass;
 }
 
+/*
+ * This function gets a passgencontext and a number k and returns the k'th password
+ */
 char* generatePassword(passgencontext* passgenctx, lexicon* lex, unsigned long k, char* pass)
 {
 	unsigned long currentTermIndex = 0;
@@ -555,9 +573,9 @@ char* generatePassword(passgencontext* passgenctx, lexicon* lex, unsigned long k
 	}
 	return pass;
 }
+
 #define RULE 		"^1^1^1"
 #define CONST_K		12
-
 
 #ifdef RULES_PREPROCESS
 int main(int argc, char** argv) {

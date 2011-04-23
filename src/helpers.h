@@ -1,3 +1,8 @@
+/*
+ * This file contains definitions of constants, macros, structs and functions
+ * which we use across the project.
+ */
+
 #ifndef HELPERS_H
 #define HELPERS_H
 
@@ -7,10 +12,10 @@
 #include <stdlib.h>
 
 /*#define CREATE_AUTHENTICATION*/
-/*#define AUTHENTICATE*/
+#define AUTHENTICATE
 /*#define RULES_PREPROCESS*/
 /*#define EXHAUSTIVE_TABLE_GENERATOR*/
-#define EXHAUSTIVE_QUERY
+/*#define EXHAUSTIVE_QUERY*/
 /*#define CREATE_RAINBOW_TABLE*/
 /*#define CRACK_USING_RAINBOW_TABLE*/
 
@@ -28,6 +33,7 @@
 #define MIN(x,y) ((x) < (y) ? (x) : (y))
 #define MAX(x,y) ((x) > (y) ? (x) : (y))
 
+/* ini file params */
 #define PARAM_INVALID 0
 #define PARAM_LEXNAME 1
 #define PARAM_CHAIN_LENGTH 2
@@ -38,6 +44,7 @@
 #define PARAM_HASH_FUNCTION 7
 #define PARAM_OUTPUT_FILE_PREFIX 8
 
+/* this struct contains the rainbow setting */
 typedef struct rainbow_settings_struct {
 	char 			LexiconName[MAX_INPUT];
 	unsigned int 	ChainLength;
@@ -56,6 +63,7 @@ enum Hashfunc {
 	SHA1
 };
 
+/* this struct contains a record tag */
 typedef struct record_tag {
 	enum Hashfunc hash;
 	BasicHashFunctionPtr hashptr;
@@ -68,6 +76,7 @@ typedef struct record_tag {
 	unsigned int hashed_password_len;
 } record;
 
+/* function prototypes */
 void printHash(record* r, FILE* file);
 int fileexists(char* filename);
 int numOfLines(char* filename);

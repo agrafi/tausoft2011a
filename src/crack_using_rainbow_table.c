@@ -1,8 +1,5 @@
 /*
- * crack_using_rainbow_table.c
- *
- *  Created on: Mar 26, 2011
- *      Author: a
+ * This file tries to crack passwords using rainbow tables.
  */
 #include <stdio.h>
 #include <stdlib.h>
@@ -17,6 +14,9 @@
 
 #ifdef CRACK_USING_RAINBOW_TABLE
 
+/*
+ * This function implements the rainbow table cracking idea.
+ */
 char* queryRainbowTable(DEHT* deht, unsigned char* target, rainbow_settings* settings, unsigned long* seeds,
 		passgencontext* passgenctx, lexicon* lex, char* pass)
 {
@@ -79,6 +79,10 @@ char* queryRainbowTable(DEHT* deht, unsigned char* target, rainbow_settings* set
 	return NULL;
 }
 
+/*
+ * Main loads DEHT from files, preprocessed Lexicon, creates passgenctx, Read seeds,
+ * queries rainbow table and locks DEHT files.
+ */
 int main(int argc, char** argv)
 {
 	rainbow_settings settings;

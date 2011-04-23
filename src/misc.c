@@ -1,3 +1,7 @@
+/*
+ * This file implements misc.h which also contains the functions descriptions.
+ */
+
 #include "misc.h"
 #include "md5.h"
 #include "sha1.h"
