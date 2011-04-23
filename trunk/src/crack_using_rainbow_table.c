@@ -86,19 +86,25 @@ int main(int argc, char** argv)
 	DEHT* deht = NULL;
 	passgencontext* passgenctx = NULL;
 	unsigned int passgensize = 0;
-	char pass[MAX_FIELD+1] = {0};
 	unsigned long keylen;
-	unsigned long* seeds = NULL;;
+	unsigned long* seeds = NULL;
 	char cmd = CMD_CONTINUE;
 	char quit = 0;
-	unsigned char keybuf[SHA1_OUTPUT_LENGTH_IN_BYTES];
-	char hashbuf[MAX_FIELD+1];
+
 #ifdef DEBUG_TEST
-	unsigned long i=1, succeeded=0, z=0;
-	char hashbuf2[MAX_FIELD+1];
+	/*unsigned long i=1, succeeded=0, z=0;
+	char hashbuf2[MAX_FIELD+1];*/
 #endif
-	char hexbuf[MAX_FIELD+1];
-	char databuf[MAX_INPUT];
+	/*unsigned char keybuf[SHA1_OUTPUT_LENGTH_IN_BYTES];*/
+	unsigned char *keybuf = calloc(1,SHA1_OUTPUT_LENGTH_IN_BYTES);
+	/*char hashbuf[MAX_FIELD+1];*/
+	char *hashbuf = calloc(1,MAX_FIELD+1);
+	/*char pass[MAX_FIELD+1] = {0};*/
+	char *pass = calloc(1,MAX_FIELD+1);
+	/*char *hexbuf[MAX_FIELD+1];*/
+	char *hexbuf = calloc(1,MAX_FIELD+1);
+	/*char databuf[MAX_INPUT];*/
+	char *databuf = calloc(1,MAX_INPUT);
 
 	memset(&hexbuf, 0, sizeof(hexbuf));
 
@@ -156,7 +162,7 @@ int main(int argc, char** argv)
 		memset(&hexbuf, 0, MAX_FIELD);
 
 #ifdef DEBUG_TEST
-		memset(hashbuf2, 0, 2*SHA1_OUTPUT_LENGTH_IN_BYTES + 1);
+		/*memset(hashbuf2, 0, 2*SHA1_OUTPUT_LENGTH_IN_BYTES + 1);
 		cmd = CMD_VALID;
 		if(i <= NUM_PASS_TO_CHECK)
 		{
@@ -171,9 +177,9 @@ int main(int argc, char** argv)
 		{
 			quit = 1;
 			continue;
-		}
+		}*/
 #else
-		cmd = readHashFromUser(hashbuf);
+		/*cmd = readHashFromUser(hashbuf);*/
 #endif
 
 		switch(cmd)
@@ -224,6 +230,14 @@ int main(int argc, char** argv)
 	freelex(lex);
 	lock_DEHT_files(deht);
 	free(seeds);
+
+
+	free(keybuf);
+	free(hashbuf);
+	free(pass);
+	free(hexbuf);
+	free(databuf);
+
 	return EXIT_SUCCESS;
 }
 

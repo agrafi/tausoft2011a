@@ -148,11 +148,6 @@ int main(int argc, char** argv) {
 			for (i=0; i<dblen && !approved; i++)
 			{
 
-#ifdef DEBUG
-		printf("user: %s pass: %s\n", newuser->username,(char*) &(newuser->password));
-		printHash(newuser, stdout); printf("\n");
-#endif
-
 				if (!memcmp(newuser->username, db[i].username, sizeof(newuser->username)) &&
 						!memcmp((char*)&(newuser->hashed_password), (char*)&(db[i].hashed_password), sizeof(newuser->hashed_password)))
 					approved = 1;

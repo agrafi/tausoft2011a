@@ -762,7 +762,7 @@ int calc_DEHT_last_block_per_bucket(DEHT *ht)
 				return DEHT_STATUS_FAIL;
 			}
 			/* read whole block */
-			if (ht->header.nPairsPerBlock == fread(block, ht->header.nPairsPerBlock, sizeof(TRIPLE), ht->keyFP))
+			if (ht->header.nPairsPerBlock != fread(&block, ht->header.nPairsPerBlock, sizeof(TRIPLE), ht->keyFP))
 			{
 				perror("Could not read DEHT whole block");
 				free(block);
@@ -770,6 +770,7 @@ int calc_DEHT_last_block_per_bucket(DEHT *ht)
 				free(ht->anLastBlockSize);
 				return DEHT_STATUS_FAIL;
 			}
+
 
 			/* iterate over block triplets */
 			counter = 0;

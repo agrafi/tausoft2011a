@@ -6,11 +6,13 @@
  */
 
 #include <stdio.h>
-#include <stdlib.h>
 #include <time.h>
 #include "helpers.h"
 #include "DEHT.h"
 #include "rules.h"
+#include <stdlib.h>
+#include <time.h>
+#include <math.h>
 
 #define ELEMENTS_PER_NODE 10
 
@@ -42,7 +44,7 @@ int main(int argc, char** argv)
 	char hashbuf[2*SHA1_OUTPUT_LENGTH_IN_BYTES + 1];
 
 	/* initialize random generator */
-	srandom(time(NULL));
+	srand(time(NULL));
 
 	if (argc != 6)
 	{
@@ -98,7 +100,7 @@ int main(int argc, char** argv)
 
 	for(i = 0; i < numOfPasswords; i++)
 	{
-		idx = (k == 0 ? i + 1: random() % (passgenctx->numOfPasswords - 1) + 1);
+		idx = (k == 0 ? i + 1: rand() % (passgenctx->numOfPasswords - 1) + 1);
 		generatePassword(passgenctx, lex, idx, pass);
 		hashptr((unsigned char*)pass, strlen(pass), (unsigned char*)hashbuf);
 		/* keylen = hexa2binary(hashbuf, keybuf, SHA1_OUTPUT_LENGTH_IN_BYTES); */
