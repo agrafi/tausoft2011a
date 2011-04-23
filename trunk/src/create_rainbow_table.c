@@ -1,8 +1,5 @@
 /*
- * create_rainbow_table.c
- *
- *  Created on: Mar 25, 2011
- *      Author: aviv
+ * This file does the preprocessing of the rainbow table according to the ini file.
  */
 
 #include <stdio.h>
@@ -13,6 +10,10 @@
 
 #ifdef CREATE_RAINBOW_TABLE
 
+/*
+ * Main proprocesses lexicon, creates passgenctx, creates empty DEHT, generates the chains
+ * and adds them to the DEHT, lock_DEHT_files.
+ */
 int main(int argc, char** argv)
 {
 	rainbow_settings settings;

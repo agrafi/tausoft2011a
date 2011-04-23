@@ -1,3 +1,6 @@
+/*
+ * This file gathers a few functions which we use across the project
+ */
 #define _GNU_SOURCE
 #include <stdio.h>
 #include <stdlib.h>
@@ -10,6 +13,9 @@
 #include "misc.h"
 #include "helpers.h"
 
+/*
+ * This function takes a record and a file and prints the hashed password into the file
+ */
 void printHash(record* r, FILE* file)
 {
 	int i = 0;
@@ -25,6 +31,9 @@ void printHash(record* r, FILE* file)
 	}
 }
 
+/*
+ * This function takes a file name and returns 1 if exists, 0 otherwise
+ */
 int fileexists(char* filename)
 {
 	FILE *fp = fopen(filename,"r");
@@ -39,6 +48,9 @@ int fileexists(char* filename)
 	}
 }
 
+/*
+ * This function takes a file name and returns the number of lines in it
+ */
 int numOfLines(char* filename)
 {
 	FILE *f;
@@ -62,7 +74,10 @@ int numOfLines(char* filename)
 	return lines;
 }
 
-
+/*
+ * This function takes a buffer and two char* variables parameterName, parameterValue.
+ * The function parses the buffer and updates the char* variables with the parameter and value.
+ */
 int extractParameterNameValue(char* buffer, char* parameterName, char* parameterValue)
 {
 	int retValue = PARAM_INVALID;
@@ -111,6 +126,7 @@ int extractParameterNameValue(char* buffer, char* parameterName, char* parameter
 	if (*currentPtr != '\0')
 		return PARAM_INVALID;
 
+	/* deciding which retValue to return according to the parameter parsed */
 	retValue = (strcmp("LexiconName", parameterName) 		? retValue : PARAM_LEXNAME);
 	retValue = (strcmp("ChainLength", parameterName) 		? retValue : PARAM_CHAIN_LENGTH);
 	retValue = (strcmp("NumOfHashEntries", parameterName) 	? retValue : PARAM_NUM_OF_HASH_ENTRIES);
@@ -123,6 +139,10 @@ int extractParameterNameValue(char* buffer, char* parameterName, char* parameter
 	return retValue;
 }
 
+/*
+ * This function gets a rainbow_setting struct and a path to an ini file.
+ * The function parses the ini file and updates the rainbow_setting struct.
+ */
 int parseSettings(rainbow_settings* settings, char* inipath)
 {
 	FILE* inihandle = NULL;
@@ -158,6 +178,7 @@ int parseSettings(rainbow_settings* settings, char* inipath)
 			return 0;
 		}
 
+		/* handling each parameter individually */
 		switch (parameterCode)
 		{
 		case PARAM_LEXNAME:

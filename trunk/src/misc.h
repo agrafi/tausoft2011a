@@ -1,6 +1,7 @@
-/************************************************************************/
-/* File misc.h, some nice interfaces along with partial implementations */
-/************************************************************************/
+/*
+ * File misc.h, some nice interfaces along with partial implementations
+ */
+
 
 #ifndef _MISC_H_
 #define _MISC_H_

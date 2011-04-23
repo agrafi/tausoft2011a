@@ -1,11 +1,7 @@
 /*
- ============================================================================
- Name        : create_authentication.c
- Author      : Aviv Graffi and Asaf Bruner
- Version     :
- Copyright   :
- Description : create authentication, first part of the project.
- ============================================================================
+ * This file simulates the creation of users where each user enters a password
+ * and outputs a file with hashed passwords.
+ *
  */
 
 #include <stdio.h>
@@ -18,6 +14,9 @@
 #include "misc.h"
 #include "helpers.h"
 
+/*
+ * This function prints the record into the file
+ */
 void writeRecordToFile(FILE* file, record* r)
 {
 	fprintf(file, "%s\t", r->username);
@@ -25,6 +24,9 @@ void writeRecordToFile(FILE* file, record* r)
 	fprintf(file, "\n");
 }
 
+/*
+ * This function reads a line from the user
+ */
 int readLineFromUser(record* newuser)
 {
 	char* buffer = NULL;
@@ -80,6 +82,10 @@ int readLineFromUser(record* newuser)
 }
 
 #ifdef CREATE_AUTHENTICATION
+
+/*
+ * Main reads a line from the user, verifies it and writes it to a file.
+ */
 int main(int argc, char** argv) {
 	enum Hashfunc hashfunc;
 	BasicHashFunctionPtr hashptr;

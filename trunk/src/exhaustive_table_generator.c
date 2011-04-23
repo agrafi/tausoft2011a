@@ -1,8 +1,5 @@
 /*
- * exhaustive_table_generator.c
- *
- *  Created on: Mar 12, 2011
- *      Author: a
+ * This file generates prefix.key and prefix.data according to the rule, lexicon and hash it gets.
  */
 
 #include <stdio.h>
@@ -21,6 +18,9 @@
 
 #ifdef EXHAUSTIVE_TABLE_GENERATOR
 
+/*
+ * Main creates empty deht, preprocesses Lexicon, creates rules and populetes the deht, lock deht files.
+ */
 int main(int argc, char** argv)
 {
 	lexicon* lex = NULL;
