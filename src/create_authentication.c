@@ -77,6 +77,7 @@ int main(int argc, char** argv) {
 	}
 	fprintf(filename_handle, "%s\n", argv[1]);
 
+	/* aquire creds and store in db until quit command is entered */
 	while(quit)
 	{
 			newuser = (record*)calloc(1, sizeof(record));

@@ -29,16 +29,20 @@ int readLineFromFile(FILE* file, record* newuser)
 
 	memset(buffer, 0, MAX_INPUT*sizeof(char));
 	fgets(buffer, MAX_INPUT, file);
+
 	/* find first tab */
 	if ((position = strchr(buffer, '\t')) == NULL)
 	{
 		free(buffer);
 		return CMD_QUIT;
 	}
+
 	*position = '\0';
 	strncpy((char*)&(newuser->username), buffer, position - buffer);
+
 	memset((void*)&(newuser->hashed_password), 0, sizeof(newuser->hashed_password));
 	hexa2binary(position+1, (unsigned char*)&(newuser->hashed_password), MIN(newuser->hashed_password_len, sizeof(newuser->hashed_password)));
+
 	free(buffer);
 	return CMD_VALID;
 }
@@ -56,8 +60,8 @@ int main(int argc, char** argv) {
 	char buffer[MAX_FIELD] = {0};
 	int i = 0;
 	int dblen = 0;
-	record* newuser = NULL;
-	record* newrecord = NULL;
+	record newuser;
+	record newrecord;
 	record* db = NULL;
 	char quit = CMD_CONTINUE;
 	char approved = 0;
@@ -103,63 +107,63 @@ int main(int argc, char** argv) {
 		fprintf(stderr, "Error: Hash \"%s\" is not supported\n", buffer);
 		return 1;
 	}
+
+	/* Acquire number of lines in file and allocate table */
 	dblen = numOfLines(filename);
 	db = (record*)calloc(1, sizeof(record)*dblen);
 	if (!db)
 		return 1;
 
 	i = 0;
+	/* read db and store in memory */
 	while(1)
 	{
-		newrecord = (record*)calloc(1, sizeof(record));
-		if(!newrecord)
-		{
-			free(db);
-			break;
-		}
-		newrecord->hashed_password_len = hashed_password_len;
-		quit = readLineFromFile(filename_handle, newrecord);
+		memset(&newrecord, 0, sizeof(record));
+
+		newrecord.hashed_password_len = hashed_password_len;
+		quit = readLineFromFile(filename_handle, &newrecord);
+
 		if (quit == CMD_QUIT)
 		{
-			free(newrecord);
 			break;
 		}
-		memcpy(&db[i], newrecord, sizeof(record));
-		free(newrecord);
+
+		memcpy(&db[i], &newrecord, sizeof(record));
 		i++;
 	}
 
+	/* read creds using console prompt and check against db */
 	quit = CMD_CONTINUE;
 	while(quit != CMD_QUIT)
 	{
 			approved = 0;
-			newuser = (record*)calloc(1, sizeof(record));
-			if(!newuser)
-				break;
-			newuser->hashptr = hashptr;
-			newuser->hash = hashfunc;
-			newuser->hashed_password_len = hashed_password_len;
-			quit = readLineFromUser(newuser);
+			memset(&newuser, 0, sizeof(record));
+
+			newuser.hashptr = hashptr;
+			newuser.hash = hashfunc;
+			newuser.hashed_password_len = hashed_password_len;
+			quit = readLineFromUser(&newuser);
+
 			if (quit != CMD_VALID)
 			{
-				free(newuser);
 				if (quit == CMD_QUIT)
 					break;
 				continue;
 			}
 
+			/* iterate over db */
 			for (i=0; i<dblen && !approved; i++)
 			{
-
-				if (!memcmp(newuser->username, db[i].username, sizeof(newuser->username)) &&
-						!memcmp((char*)&(newuser->hashed_password), (char*)&(db[i].hashed_password), sizeof(newuser->hashed_password)))
+				if (!memcmp(newuser.username, db[i].username, sizeof(newuser.username)) &&
+						!memcmp((char*)&(newuser.hashed_password), (char*)&(db[i].hashed_password), sizeof(newuser.hashed_password)))
 					approved = 1;
 			}
+
 			if (approved)
 				printf("Approved.\n");
 			else
 				printf("Denied.\n");
-			free(newuser);
+
 	}
 	/* release db */
 	free(db);

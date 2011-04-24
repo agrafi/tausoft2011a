@@ -121,12 +121,15 @@ int main(int argc, char** argv)
 	if (!deht)
 		return 1;
 
+	/* read lexicon */
 	lex = preprocessLexicon(settings.LexiconName);
 	if (!lex)
 	{
 		lock_DEHT_files(deht);
 		return 1;
 	}
+
+	/* parse rule */
 	passgenctx = createrule(settings.Rule, lex, &passgensize);
 	if (!passgenctx)
 	{
@@ -177,19 +180,21 @@ int main(int argc, char** argv)
 			continue;
 		}
 #else
+		/* read hash using user prompt */
 		cmd = readHashFromUser(hashbuf);
 #endif
 
 		switch(cmd)
 		{
-		case CMD_QUIT:
+		case CMD_QUIT: /* quit command detected */
 			quit = 1;
 			break;
-		case CMD_CONTINUE:
+		case CMD_CONTINUE: /* illegal or empty command detected */
 			break;
 		case CMD_VALID:
 			if (hashbuf[0] == '!')
 			{
+				/* hash user provided string */
 				memcpy(hexbuf, hashbuf+1, strlen(hashbuf)-1);
 				settings.hashptr((unsigned char*)hexbuf, strlen(hexbuf), (unsigned char*)keybuf);
 				binary2hexa((unsigned char*)keybuf, settings.hashed_password_len, hexbuf, sizeof(hexbuf));
@@ -197,6 +202,7 @@ int main(int argc, char** argv)
 			}
 			else
 			{
+				/* verify provided hash string length */
 				if (strlen(hashbuf) != settings.hashed_password_len * 2)
 				{
 					/* key buf holds the hashed password string */
@@ -206,6 +212,7 @@ int main(int argc, char** argv)
 				keylen = hexa2binary(hashbuf, (unsigned char*)keybuf, sizeof(keybuf));
 			}
 
+			/* query user provided hash */
 			queryRainbowTable(deht, (unsigned char*)keybuf, &settings, seeds, passgenctx, lex, pass);
 			if (strlen(pass) != 0)
 			{
@@ -224,6 +231,7 @@ int main(int argc, char** argv)
 	printf("\nYou succeeded %lu passes out of %d which is %3.2f %%\n",succeeded,NUM_PASS_TO_CHECK,((float)succeeded/NUM_PASS_TO_CHECK)*100);
 #endif
 
+	/* lock and free everything */
 	freerule(passgenctx);
 	freelex(lex);
 	lock_DEHT_files(deht);
