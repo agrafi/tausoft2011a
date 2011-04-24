@@ -11,7 +11,7 @@
 #include "stdio.h"
 #include <stdlib.h>
 
-#define DEBUG_TEST
+/*#define DEBUG_TEST*/
 
 /*#define CREATE_AUTHENTICATION*/
 /*#define AUTHENTICATE*/
