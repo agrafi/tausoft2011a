@@ -24,62 +24,6 @@ void writeRecordToFile(FILE* file, record* r)
 	fprintf(file, "\n");
 }
 
-/*
- * This function reads a line from the user
- */
-int readLineFromUser(record* newuser)
-{
-	char* buffer = NULL;
-	char* position = NULL;
-
-	buffer = (char*)calloc(1, MAX_INPUT*sizeof(char));
-	if(!buffer)
-		return CMD_QUIT;
-
-
-	memset(buffer, 0, MAX_INPUT*sizeof(char));
-	printf(">>");
-	if (buffer != fgets(buffer, MAX_INPUT, stdin))
-	{
-		free(buffer);
-		return CMD_QUIT;
-	}
-	if (strncmp("quit\n", buffer, 6) == 0)
-	{
-		/* quit detected, TODO: free everything */
-		free(buffer);
-		return CMD_QUIT;
-	}
-	else if (strncmp("\n", buffer, 1) == 0)
-	{
-		free(buffer);
-		return CMD_CONTINUE;
-	}
-	else
-	{
-		/* find first tab */
-		if ((position = strchr(buffer, '\t')) == NULL)
-		{
-			fprintf(stderr, "Error: Commands are either “quit” or <user name>tab<password>.\n");
-			free(buffer);
-			return CMD_CONTINUE;
-		}
-		*position = '\0';
-		strncpy((char*)&(newuser->username), buffer, position - buffer);
-		strncpy((char*)&(newuser->password), position+1, strlen(position+1)-1);
-
-#ifdef DEBUG
-		printf("user: %s pass: %s\n", newuser->username, (char*)&(newuser->password));
-#endif
-		memset((void*)&(newuser->hashed_password), 0, sizeof(newuser->hashed_password));
-		newuser->hashptr((unsigned char*)&(newuser->password), strlen(newuser->password), (unsigned char*) &(newuser->hashed_password));
-#ifdef DEBUG
-		printHash(newuser, stdout); printf("\n");
-#endif
-		free(buffer);
-	}
-	return CMD_VALID;
-}
 
 #ifdef CREATE_AUTHENTICATION
 
