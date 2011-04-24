@@ -48,6 +48,42 @@ int fileexists(char* filename)
 	}
 }
 
+/*
+ * This function reads a hashed password from the user and returns it in hashedpass variable.
+ */
+int readHashFromUser(char* hashedpass)
+{
+	char* buffer = NULL;
+
+	buffer = (char*)calloc(1, MAX_INPUT*sizeof(char));
+	if (!buffer)
+		return CMD_QUIT;
+
+
+	memset(buffer, 0, MAX_INPUT*sizeof(char));
+	printf(">>");
+	fgets(buffer, MAX_INPUT, stdin);
+	if (strncmp("quit\n", buffer, 6) == 0)
+	{
+		/* quit detected, TODO: free everything */
+		free(buffer);
+		return CMD_QUIT;
+	}
+	else if (strncmp("\n", buffer, 1) == 0)
+	{
+		free(buffer);
+		return CMD_CONTINUE;
+	}
+	else
+	{
+		/* drop trailing newline */
+		if (buffer[strlen(buffer)-1] == '\n')
+			buffer[strlen(buffer)-1] = '\0';
+		strncpy(hashedpass, buffer, strlen(buffer)+1);
+		free(buffer);
+	}
+	return CMD_VALID;
+}
 
 /*
  * This function reads a line from the user

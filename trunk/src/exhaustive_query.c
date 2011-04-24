@@ -9,43 +9,6 @@
 #include "assert.h"
 
 /*
- * This function reads a hashed password from the user and returns it in hashedpass variable.
- */
-int readHashFromUser(char* hashedpass)
-{
-	char* buffer = NULL;
-
-	buffer = (char*)calloc(1, MAX_INPUT*sizeof(char));
-	if (!buffer)
-		return CMD_QUIT;
-
-
-	memset(buffer, 0, MAX_INPUT*sizeof(char));
-	printf(">>");
-	fgets(buffer, MAX_INPUT, stdin);
-	if (strncmp("quit\n", buffer, 6) == 0)
-	{
-		/* quit detected, TODO: free everything */
-		free(buffer);
-		return CMD_QUIT;
-	}
-	else if (strncmp("\n", buffer, 1) == 0)
-	{
-		free(buffer);
-		return CMD_CONTINUE;
-	}
-	else
-	{
-		/* drop trailing newline */
-		if (buffer[strlen(buffer)-1] == '\n')
-			buffer[strlen(buffer)-1] = '\0';
-		strncpy(hashedpass, buffer, strlen(buffer)+1);
-		free(buffer);
-	}
-	return CMD_VALID;
-}
-
-/*
  * Main loads deht from files, reads hash from user, queries deht and locks deht files.
  */
 #ifdef EXHAUSTIVE_QUERY
@@ -88,6 +51,7 @@ int main(int argc, char** argv)
 		lock_DEHT_files(deht);
 		return 1;
 	}
+
 	while (!quit)
 	{
 		memset(&hashbuf, 0, sizeof(hashbuf));
@@ -102,6 +66,7 @@ int main(int argc, char** argv)
 			break;
 		case CMD_VALID:
 			/* key buf holds the hashed password string */
+			/* verify provided hash string length */
 			if (strlen(hashbuf) != hashed_password_len * 2)
 			{
 				fprintf(stderr, "Error: Wrong hash size \n");
@@ -109,6 +74,7 @@ int main(int argc, char** argv)
 			}
 
 			keylen = hexa2binary(hashbuf,(unsigned char*)keybuf, sizeof(keybuf));
+			/* query user provided hash */
 			if (query_DEHT(deht,(unsigned char*)keybuf, keylen,(unsigned char*)databuf, sizeof(databuf)))
 				printf("Try to login with password \"%s\"\n", databuf);
 			else
