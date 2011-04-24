@@ -357,6 +357,7 @@ lexicon* preprocessLexicon(char* filename)
 	}
 	if ((f = fopen(filename, "rt")) == NULL)
 	{
+		perror("Could not open lexicon file");
 		freelex(lex);
 		return NULL;
 	}

@@ -20,7 +20,6 @@ int main(int argc, char** argv)
 	lexicon* lex = NULL;
 	DEHT* deht = NULL;
 	passgencontext* passgenctx = NULL;
-	char* hashbuf;
 	unsigned int passgensize = 0;
 	unsigned long k = 0;
 	unsigned long numOfChains = 50;
@@ -28,12 +27,12 @@ int main(int argc, char** argv)
 	char pass[MAX_FIELD + 1] = {0};
 	unsigned long i = 0, j = 0;
 	unsigned long idx = 0;
-	unsigned long* seeds = NULL;;
-
-	hashbuf = calloc(1, 2*SHA1_OUTPUT_LENGTH_IN_BYTES + 1);
-#ifdef DEBUG
-/*	char hexbuf[2*SHA1_OUTPUT_LENGTH_IN_BYTES + 1];*/
+	unsigned long* seeds = NULL;
+	char hashbuf[2*SHA1_OUTPUT_LENGTH_IN_BYTES + 1];
+#ifdef DEBUG_TEST
+	char hexbuf[2*SHA1_OUTPUT_LENGTH_IN_BYTES + 1];
 #endif
+
 
 	if (argc != 2)
 	{
@@ -110,10 +109,10 @@ int main(int argc, char** argv)
 			/* printf("\t%s \t%s\n", pass, hexbuf); */
 #endif
 		}
-#ifdef DEBUG
-		/*binary2hexa((unsigned char*)hashbuf, settings.hashed_password_len, hexbuf, sizeof(hexbuf));
+#ifdef DEBUG_TEST
+		binary2hexa((unsigned char*)hashbuf, settings.hashed_password_len, hexbuf, sizeof(hexbuf));
 		printf("%2.1f%%: The %lu/%lu chain for %s is \t%s : \t%s\n", 100*((float)i/(float)numOfChains),
-				i, numOfChains,	settings.Rule, origpass, hexbuf);*/
+				i, numOfChains,	settings.Rule, origpass, hexbuf);
 #endif
 		if (DEHT_STATUS_SUCCESS != add_DEHT(deht, (unsigned char*)hashbuf, settings.hashed_password_len, (unsigned char*)origpass, strlen(origpass)))
 		{
@@ -125,9 +124,8 @@ int main(int argc, char** argv)
 	freerule(passgenctx);
 	freelex(lex);
 	free(seeds);
-	free(hashbuf);
-#ifdef DEBUG
-	/*printf("Done.\n");*/
+#ifdef DEBUG_TEST
+	printf("Done.\n");
 #endif
 	return EXIT_SUCCESS;
 }

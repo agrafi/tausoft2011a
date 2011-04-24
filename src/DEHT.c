@@ -214,7 +214,7 @@ int add_DEHT ( DEHT *ht, const unsigned char *key, int keyLength,
 	int hashIndex = 0;
 	TRIPLE* block = NULL;
 
-	block = calloc(1, ht->header.nPairsPerBlock);
+	block = calloc(sizeof(TRIPLE), ht->header.nPairsPerBlock);
 	if (!block)
 	{
 		return DEHT_STATUS_FAIL;
@@ -289,7 +289,7 @@ int add_DEHT ( DEHT *ht, const unsigned char *key, int keyLength,
 					free(block);
 					return DEHT_STATUS_FAIL;
 				}
-				if (ht->header.nPairsPerBlock != fwrite(&block, sizeof(TRIPLE), ht->header.nPairsPerBlock, ht->keyFP))
+				if (ht->header.nPairsPerBlock != fwrite(block, sizeof(TRIPLE), ht->header.nPairsPerBlock, ht->keyFP))
 				{
 					perror("Could not write DEHT new block");
 					free(block);
@@ -467,7 +467,7 @@ int mult_query_DEHT ( DEHT *ht, const unsigned char *key, int keyLength,
 	TRIPLE* block = NULL;
 	dataPointerLength--;
 
-	block = calloc(1, ht->header.nPairsPerBlock);
+	block = calloc(sizeof(TRIPLE), ht->header.nPairsPerBlock);
 	if (!block)
 	{
 		return DEHT_STATUS_FAIL;
@@ -509,7 +509,7 @@ int mult_query_DEHT ( DEHT *ht, const unsigned char *key, int keyLength,
 		}
 
 		/* read whole block */
-		if (ht->header.nPairsPerBlock == fread(&block, ht->header.nPairsPerBlock, sizeof(TRIPLE), ht->keyFP))
+		if (ht->header.nPairsPerBlock != fread(block, sizeof(TRIPLE), ht->header.nPairsPerBlock, ht->keyFP))
 		{
 			perror("Could not read DEHT whole block");
 			free(block);
@@ -703,14 +703,14 @@ int calc_DEHT_last_block_per_bucket(DEHT *ht)
 	BLOCK_HEADER bheader;
 	TRIPLE* block = NULL;
 
-	block = calloc(1, ht->header.nPairsPerBlock);
+	block = calloc(sizeof(TRIPLE), ht->header.nPairsPerBlock);
 	if (!block)
 	{
 		return DEHT_STATUS_FAIL;
 	}
 
 	memset(&bheader, 0, sizeof(bheader));
-	memset(&block, 0, sizeof(block));
+	memset(block, 0, sizeof(block));
 
 	if (ht->hashPointersForLastBlockImageInMemory)
 	{
@@ -772,7 +772,7 @@ int calc_DEHT_last_block_per_bucket(DEHT *ht)
 				return DEHT_STATUS_FAIL;
 			}
 			/* read whole block */
-			if (ht->header.nPairsPerBlock != fread(&block, ht->header.nPairsPerBlock, sizeof(TRIPLE), ht->keyFP))
+			if (ht->header.nPairsPerBlock != fread(block, sizeof(TRIPLE), ht->header.nPairsPerBlock, ht->keyFP))
 			{
 				perror("Could not read DEHT whole block");
 				free(block);
