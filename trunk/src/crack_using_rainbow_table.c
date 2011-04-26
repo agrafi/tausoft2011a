@@ -198,7 +198,7 @@ int main(int argc, char** argv)
 				memcpy(hexbuf, hashbuf+1, strlen(hashbuf)-1);
 				settings.hashptr((unsigned char*)hexbuf, strlen(hexbuf), (unsigned char*)keybuf);
 				binary2hexa((unsigned char*)keybuf, settings.hashed_password_len, hexbuf, sizeof(hexbuf));
-				printf("In hexa password is%s\n", hexbuf); /* TODO: should it be with space? */
+				printf("In hexa password is %s\n", hexbuf); /* TODO: should it be with space? */
 			}
 			else
 			{
